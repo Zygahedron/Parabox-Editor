@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
-import glfw
+import multiprocessing
+# import glfw
+from sdl2 import *
+import ctypes
 import OpenGL.GL as gl
 
 import imgui
-from imgui.integrations.glfw import GlfwRenderer
+# from imgui.integrations.glfw import GlfwRenderer
+from imgui.integrations.sdl2 import SDL2Renderer
 
 import glob
 import os
 import platform
 import traceback
+import time
 
 from level import *
 from editor import *
@@ -25,8 +30,8 @@ def main():
     global levels_folder
     
     imgui.create_context()
-    window = impl_glfw_init()
-    impl = GlfwRenderer(window)
+    window, gl_context = impl_pysdl2_init()
+    impl = SDL2Renderer(window)
 
     levels_search = ""
     files = None
@@ -36,9 +41,21 @@ def main():
 
     cursor_held = None
 
-    while not glfw.window_should_close(window):
-        glfw.poll_events()
+    running = True
+    event = SDL_Event()
+    last_time = time.time()
+    while running:
+        while SDL_PollEvent(ctypes.byref(event)) != 0:
+            if event.type == SDL_QUIT:
+                running = False
+                break
+            impl.process_event(event)
+        # glfw.poll_events()
         impl.process_inputs()
+
+        if time.time() <= last_time:
+            continue
+        last_time = time.time()
 
         imgui.new_frame()
 
@@ -132,39 +149,61 @@ def main():
 
         imgui.render()
         impl.render(imgui.get_draw_data())
-        glfw.swap_buffers(window)
+        # glfw.swap_buffers(window)
+        SDL_GL_SwapWindow(window)
 
     impl.shutdown()
-    glfw.terminate()
+    # glfw.terminate()
+    SDL_GL_DeleteContext(gl_context)
+    SDL_DestroyWindow(window)
+    SDL_Quit()
 
-def impl_glfw_init():
+def impl_pysdl2_init():
     width, height = 800, 600
     window_name = "Zygan's Parabox Editor"
 
-    if not glfw.init():
-        print("Could not initialize OpenGL context")
+    if SDL_Init(SDL_INIT_EVERYTHING) < 0:
+        print("Error: SDL could not initialize! SDL Error: " + SDL_GetError().decode("utf-8"))
         exit(1)
 
-    # OS X supports only forward-compatible core profiles from 3.2
-    glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-    glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-    glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24)
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8)
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1)
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1)
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE)
 
-    glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
+    SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, b"1")
+    SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, b"1")
 
-    # Create a windowed mode window and its OpenGL context
-    window = glfw.create_window(
-        int(width), int(height), window_name, None, None
-    )
-    glfw.make_context_current(window)
+    window = SDL_CreateWindow(window_name.encode('utf-8'),
+                              SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                              width, height,
+                              SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE)
 
-    if not window:
-        glfw.terminate()
-        print("Could not initialize Window")
+    if window is None:
+        print("Error: Window could not be created! SDL Error: " + SDL_GetError().decode("utf-8"))
         exit(1)
 
-    return window
+    gl_context = SDL_GL_CreateContext(window)
+    if gl_context is None:
+        print("Error: Cannot create OpenGL Context! SDL Error: " + SDL_GetError().decode("utf-8"))
+        exit(1)
+
+    SDL_GL_MakeCurrent(window, gl_context)
+    if SDL_GL_SetSwapInterval(1) < 0:
+        print("Warning: Unable to set VSync! SDL Error: " + SDL_GetError().decode("utf-8"))
+        exit(1)
+
+    return window, gl_context
 
 
 if __name__ == "__main__":
+    # pyinstaller infinite loop fix???
+    multiprocessing.freeze_support()
+    print("A")
     main()
