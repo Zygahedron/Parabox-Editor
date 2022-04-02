@@ -127,141 +127,144 @@ class Block:
         child.y = y
 
     def menu(self):
-        with imgui.begin_menu("Change Block Type") as submenu:
-            if submenu.opened:
-                changed, value = imgui.input_int("Size", self.width)
-                if changed:
-                    self.width = value
-                    self.height = value
+        if imgui.begin_menu("Change Block Type"):
+            changed, value = imgui.input_int("Size", self.width)
+            if changed:
+                self.width = value
+                self.height = value
 
-                imgui.separator()
-                clicked, state = imgui.checkbox("Flip Horizontally", self.fliph)
-                if clicked:
-                    self.fliph = int(state)
-                clicked, state = imgui.checkbox("Float in Space", self.floatinspace)
-                if clicked:
-                    self.floatinspace = int(state)
+            imgui.separator()
+            clicked, state = imgui.checkbox("Flip Horizontally", self.fliph)
+            if clicked:
+                self.fliph = int(state)
+            clicked, state = imgui.checkbox("Float in Space", self.floatinspace)
+            if clicked:
+                self.floatinspace = int(state)
 
-                imgui.separator()
-                if imgui.selectable("Normal")[0]:
-                    self.player = 0
-                    self.possessable = 0
-                    if self.fillwithwalls:
+            imgui.separator()
+            if imgui.selectable("Normal")[0]:
+                self.player = 0
+                self.possessable = 0
+                if self.fillwithwalls:
+                    self.hue = 0.1
+                    self.sat = 0.8
+                    self.val = 1.0
+            if imgui.selectable("Player")[0]:
+                self.player = 1
+                self.possessable = 1
+                if self.fillwithwalls:
+                    self.hue = 0.9
+                    self.sat = 1.0
+                    self.val = 0.7
+            if imgui.selectable("Possessable")[0]:
+                self.player = 0
+                self.possessable = 1
+                if self.fillwithwalls:
+                    self.hue = 0.9
+                    self.sat = 1.0
+                    self.val = 0.7
+
+            imgui.separator()
+            imgui.separator()
+            if self.fillwithwalls:
+                if imgui.selectable("Convert to Enterable Room")[0]:
+                    self.fillwithwalls = 0
+                    self.width = 5
+                    self.height = 5
+                    self.hue = 0.6
+                    self.sat = 0.8
+                    self.val = 1.0
+            else:
+                if imgui.selectable("Convert to Solid Box")[0]:
+                    self.fillwithwalls = 1
+                    self.width = 1
+                    self.height = 1
+                    while len(self.children):
+                        self.remove_child(self.children[0])
+                    if self.possessable:
+                        self.hue = 0.9
+                        self.sat = 1.0
+                        self.val = 0.7
+                    else:
                         self.hue = 0.1
                         self.sat = 0.8
                         self.val = 1.0
-                if imgui.selectable("Player")[0]:
-                    self.player = 1
-                    self.possessable = 1
-                    if self.fillwithwalls:
-                        self.hue = 0.9
-                        self.sat = 1.0
-                        self.val = 0.7
-                if imgui.selectable("Possessable")[0]:
-                    self.player = 0
-                    self.possessable = 1
-                    if self.fillwithwalls:
-                        self.hue = 0.9
-                        self.sat = 1.0
-                        self.val = 0.7
 
-                imgui.separator()
-                imgui.separator()
-                if self.fillwithwalls:
-                    if imgui.selectable("Convert to Enterable Room")[0]:
-                        self.fillwithwalls = 0
-                        self.width = 5
-                        self.height = 5
-                        self.hue = 0.6
-                        self.sat = 0.8
-                        self.val = 1.0
-                else:
-                    if imgui.selectable("Convert to Solid Box")[0]:
-                        self.fillwithwalls = 1
-                        self.width = 1
-                        self.height = 1
-                        while len(self.children):
-                            self.remove_child(self.children[0])
-                        if self.possessable:
-                            self.hue = 0.9
-                            self.sat = 1.0
-                            self.val = 0.7
-                        else:
-                            self.hue = 0.1
-                            self.sat = 0.8
-                            self.val = 1.0
+            imgui.end_menu()
 
-        with imgui.begin_menu("Change Block Color") as submenu:
-            if submenu.opened:
-                color_button(self, 0, 0, 0.5, "A")
-                imgui.same_line()
-                color_button(self, 0.6, 0.8, 1, "B")
-                imgui.same_line()
-                color_button(self, 0.4, 0.8, 1, "C")
-                imgui.same_line()
-                color_button(self, 0.1, 0.8, 1, "D")
-                imgui.same_line()
-                color_button(self, 0.9, 1, 0.7, "E")
-                imgui.same_line()
-                color_button(self, 0.55, 0.8, 1, "F")
-                
-                imgui.separator()
-                changed, value = imgui.input_float("Hue", self.hue)
-                if changed:
-                    self.hue = value
-                changed, value = imgui.input_float("Saturation", self.sat)
-                if changed:
-                    self.sat = value
-                changed, value = imgui.input_float("Value", self.val)
-                if changed:
-                    self.val = value
+        if imgui.begin_menu("Change Block Color"):
+            color_button(self, 0, 0, 0.5, "A")
+            imgui.same_line()
+            color_button(self, 0.6, 0.8, 1, "B")
+            imgui.same_line()
+            color_button(self, 0.4, 0.8, 1, "C")
+            imgui.same_line()
+            color_button(self, 0.1, 0.8, 1, "D")
+            imgui.same_line()
+            color_button(self, 0.9, 1, 0.7, "E")
+            imgui.same_line()
+            color_button(self, 0.55, 0.8, 1, "F")
+            
+            imgui.separator()
+            changed, value = imgui.input_float("Hue", self.hue)
+            if changed:
+                self.hue = value
+            changed, value = imgui.input_float("Saturation", self.sat)
+            if changed:
+                self.sat = value
+            changed, value = imgui.input_float("Value", self.val)
+            if changed:
+                self.val = value
 
-        with imgui.begin_menu("Edit Block") as submenu:
-            if submenu.opened:
-                changed, value = imgui.input_text("ID", self.id, 64)
-                if changed:
-                    self.id = value
+            imgui.end_menu()
 
-                changed, value = imgui.input_int("Width", self.width)
-                if changed:
-                    self.width = value
-                changed, value = imgui.input_int("Height", self.height)
-                if changed:
-                    self.height = value
-                changed, value = imgui.input_float("Hue", self.hue)
-                if changed:
-                    self.hue = value
-                changed, value = imgui.input_float("Saturation", self.sat)
-                if changed:
-                    self.sat = value
-                changed, value = imgui.input_float("Value", self.val)
-                if changed:
-                    self.val = value
-                changed, value = imgui.input_float("Zoom Factor", self.zoomfactor)
-                if changed:
-                    self.zoomfactor = value
-                changed, value = imgui.input_int("Fill With Walls", self.fillwithwalls)
-                if changed:
-                    self.fillwithwalls = value
+        if imgui.begin_menu("Edit Block"):
+            changed, value = imgui.input_text("ID", self.id, 64)
+            if changed:
+                self.id = value
 
-                changed, value = imgui.input_int("Player", self.player)
-                if changed:
-                    self.player = value
-                changed, value = imgui.input_int("Possessable", self.possessable)
-                if changed:
-                    self.possessable = value
-                changed, value = imgui.input_int("Player Order", self.playerorder)
-                if changed:
-                    self.playerorder = value
-                changed, value = imgui.input_int("Flip Horizontally", self.fliph)
-                if changed:
-                    self.fliph = value
-                changed, value = imgui.input_int("Float in Space", self.floatinspace)
-                if changed:
-                    self.floatinspace = value
-                changed, value = imgui.input_int("Special Effect", self.specialeffect)
-                if changed:
-                    self.specialeffect = value
+            changed, value = imgui.input_int("Width", self.width)
+            if changed:
+                self.width = value
+            changed, value = imgui.input_int("Height", self.height)
+            if changed:
+                self.height = value
+            changed, value = imgui.input_float("Hue", self.hue)
+            if changed:
+                self.hue = value
+            changed, value = imgui.input_float("Saturation", self.sat)
+            if changed:
+                self.sat = value
+            changed, value = imgui.input_float("Value", self.val)
+            if changed:
+                self.val = value
+            changed, value = imgui.input_float("Zoom Factor", self.zoomfactor)
+            if changed:
+                self.zoomfactor = value
+            changed, value = imgui.input_int("Fill With Walls", self.fillwithwalls)
+            if changed:
+                self.fillwithwalls = value
+
+            changed, value = imgui.input_int("Player", self.player)
+            if changed:
+                self.player = value
+            changed, value = imgui.input_int("Possessable", self.possessable)
+            if changed:
+                self.possessable = value
+            changed, value = imgui.input_int("Player Order", self.playerorder)
+            if changed:
+                self.playerorder = value
+            changed, value = imgui.input_int("Flip Horizontally", self.fliph)
+            if changed:
+                self.fliph = value
+            changed, value = imgui.input_int("Float in Space", self.floatinspace)
+            if changed:
+                self.floatinspace = value
+            changed, value = imgui.input_int("Special Effect", self.specialeffect)
+            if changed:
+                self.specialeffect = value
+
+            imgui.end_menu()
 
 class Ref:
     def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect):
@@ -307,101 +310,103 @@ class Ref:
                 draw_list.add_rect_filled(x, y, x + size, y + size, 0x3fffffff)
 
     def menu(self):
-        with imgui.begin_menu("Change Reference Type") as submenu:
-            if submenu.opened:
-                # if imgui.selectable("Make Exitable", enabled = self.exitblock == 0)[0]:
-                #     self.exitblock = 1
-                    # TODO: make this also make the others not exitable
-                    # complication: replace this with the real one *if* it's not an epsilon
-                clicked, state = imgui.checkbox("Flip Horizontally", self.fliph)
-                if clicked:
-                    self.fliph = int(state)
-                imgui.separator()
+        if imgui.begin_menu("Change Reference Type"):
+            # if imgui.selectable("Make Exitable", enabled = self.exitblock == 0)[0]:
+            #     self.exitblock = 1
+                # TODO: make this also make the others not exitable
+                # complication: replace this with the real one *if* it's not an epsilon
+            clicked, state = imgui.checkbox("Flip Horizontally", self.fliph)
+            if clicked:
+                self.fliph = int(state)
+            imgui.separator()
 
-                if imgui.selectable("Clone")[0]:
-                    self.infexit = 0
-                    self.infexitnum = 0
-                    self.infenter = 0
-                    self.infenternum = 0
-                    self.infenterid = -1
-                if imgui.selectable("Infinite Exit")[0]:
-                    self.infexit = 1
-                    self.infexitnum = 0
-                    self.infenter = 0
-                    self.infenternum = 0
-                    self.infenterid = -1
-                if self.infexit:
-                    changed, value = imgui.input_int("-> Layer", self.infexitnum)
-                    if changed:
-                        self.infexitnum = value
-                if imgui.selectable("Infinite Enter")[0]:
-                    self.infexit = 0
-                    self.infexitnum = 0
-                    self.infenter = 1
-                    self.infenternum = 0
-                    self.infenterid = self.id
-                if self.infenter:
-                    changed, value = imgui.input_int("-> Layer", self.infenternum)
-                    if changed:
-                        self.infenternum = value
-                    changed, value = imgui.input_text("-> From ID", self.infenterid, 64)
-                    if changed:
-                        self.infenterid = value
-                imgui.separator()
-
-                if imgui.selectable("Normal")[0]:
-                    self.player = 0
-                    self.possessable = 0
-                if imgui.selectable("Player")[0]:
-                    self.player = 1
-                    self.possessable = 1
-                if imgui.selectable("Possessable")[0]:
-                    self.player = 0
-                    self.possessable = 1
-
-        with imgui.begin_menu("Edit Reference") as submenu:
-            if submenu.opened:
-                changed, value = imgui.input_text("ID", self.id, 64)
-                if changed:
-                    self.id = value
-
-                changed, value = imgui.input_int("Exit Block", self.exitblock)
-                if changed:
-                    self.exitblock = value
-                changed, value = imgui.input_int("Infinite Exit", self.infexit)
-                if changed:
-                    self.infexit = value
+            if imgui.selectable("Clone")[0]:
+                self.infexit = 0
+                self.infexitnum = 0
+                self.infenter = 0
+                self.infenternum = 0
+                self.infenterid = -1
+            if imgui.selectable("Infinite Exit")[0]:
+                self.infexit = 1
+                self.infexitnum = 0
+                self.infenter = 0
+                self.infenternum = 0
+                self.infenterid = -1
+            if self.infexit:
                 changed, value = imgui.input_int("-> Layer", self.infexitnum)
                 if changed:
                     self.infexitnum = value
-                changed, value = imgui.input_int("Infinite Enter", self.infenter)
-                if changed:
-                    self.infenter = value
+            if imgui.selectable("Infinite Enter")[0]:
+                self.infexit = 0
+                self.infexitnum = 0
+                self.infenter = 1
+                self.infenternum = 0
+                self.infenterid = self.id
+            if self.infenter:
                 changed, value = imgui.input_int("-> Layer", self.infenternum)
                 if changed:
                     self.infenternum = value
                 changed, value = imgui.input_text("-> From ID", self.infenterid, 64)
                 if changed:
                     self.infenterid = value
+            imgui.separator()
 
-                changed, value = imgui.input_int("Player", self.player)
-                if changed:
-                    self.player = value
-                changed, value = imgui.input_int("Possessable", self.possessable)
-                if changed:
-                    self.possessable = value
-                changed, value = imgui.input_int("Player Order", self.playerorder)
-                if changed:
-                    self.playerorder = value
-                changed, value = imgui.input_int("Flip Horizontally", self.fliph)
-                if changed:
-                    self.fliph = value
-                changed, value = imgui.input_int("Float in Space", self.floatinspace)
-                if changed:
-                    self.floatinspace = value
-                changed, value = imgui.input_int("Special Effect", self.specialeffect)
-                if changed:
-                    self.specialeffect = value
+            if imgui.selectable("Normal")[0]:
+                self.player = 0
+                self.possessable = 0
+            if imgui.selectable("Player")[0]:
+                self.player = 1
+                self.possessable = 1
+            if imgui.selectable("Possessable")[0]:
+                self.player = 0
+                self.possessable = 1
+
+            imgui.end_menu()
+
+        if imgui.begin_menu("Edit Reference"):
+            changed, value = imgui.input_text("ID", self.id, 64)
+            if changed:
+                self.id = value
+
+            changed, value = imgui.input_int("Exit Block", self.exitblock)
+            if changed:
+                self.exitblock = value
+            changed, value = imgui.input_int("Infinite Exit", self.infexit)
+            if changed:
+                self.infexit = value
+            changed, value = imgui.input_int("-> Layer", self.infexitnum)
+            if changed:
+                self.infexitnum = value
+            changed, value = imgui.input_int("Infinite Enter", self.infenter)
+            if changed:
+                self.infenter = value
+            changed, value = imgui.input_int("-> Layer", self.infenternum)
+            if changed:
+                self.infenternum = value
+            changed, value = imgui.input_text("-> From ID", self.infenterid, 64)
+            if changed:
+                self.infenterid = value
+
+            changed, value = imgui.input_int("Player", self.player)
+            if changed:
+                self.player = value
+            changed, value = imgui.input_int("Possessable", self.possessable)
+            if changed:
+                self.possessable = value
+            changed, value = imgui.input_int("Player Order", self.playerorder)
+            if changed:
+                self.playerorder = value
+            changed, value = imgui.input_int("Flip Horizontally", self.fliph)
+            if changed:
+                self.fliph = value
+            changed, value = imgui.input_int("Float in Space", self.floatinspace)
+            if changed:
+                self.floatinspace = value
+            changed, value = imgui.input_int("Special Effect", self.specialeffect)
+            if changed:
+                self.specialeffect = value
+
+            imgui.end_menu()
 
 class Wall:
     id = None
@@ -436,29 +441,31 @@ class Wall:
         return imgui.get_color_u32_rgba(r, g, b, 1)
 
     def menu(self):
-        with imgui.begin_menu("Change Wall Type") as submenu:
-            if submenu.opened:
-                if imgui.selectable("Normal")[0]:
-                    self.player = 0
-                    self.possessable = 0
-                if imgui.selectable("Player")[0]:
-                    self.player = 1
-                    self.possessable = 1
-                if imgui.selectable("Possessable")[0]:
-                    self.player = 0
-                    self.possessable = 1
+        if imgui.begin_menu("Change Wall Type"):
+            if imgui.selectable("Normal")[0]:
+                self.player = 0
+                self.possessable = 0
+            if imgui.selectable("Player")[0]:
+                self.player = 1
+                self.possessable = 1
+            if imgui.selectable("Possessable")[0]:
+                self.player = 0
+                self.possessable = 1
 
-        with imgui.begin_menu("Edit Wall") as submenu:
-            if submenu.opened:
-                changed, value = imgui.input_int("Player", self.player)
-                if changed:
-                    self.player = value
-                changed, value = imgui.input_int("Possessable", self.possessable)
-                if changed:
-                    self.possessable = value
-                changed, value = imgui.input_int("Player Order", self.playerorder)
-                if changed:
-                    self.playerorder = value
+            imgui.end_menu()
+
+        if imgui.begin_menu("Edit Wall"):
+            changed, value = imgui.input_int("Player", self.player)
+            if changed:
+                self.player = value
+            changed, value = imgui.input_int("Possessable", self.possessable)
+            if changed:
+                self.possessable = value
+            changed, value = imgui.input_int("Player Order", self.playerorder)
+            if changed:
+                self.playerorder = value
+
+            imgui.end_menu()
 
 class Floor:
     id = None
@@ -492,33 +499,36 @@ class Floor:
                 draw_list.add_rect(x, y, x+size, y+size, 0xffffffff, thickness=size/20)
 
     def menu(self):
-        with imgui.begin_menu("Change Floor Type") as submenu:
-            if submenu.opened:
-                if imgui.selectable("Button")[0]:
-                    self.type = "Button"
-                if imgui.selectable("Player Button")[0]:
-                    self.type = "PlayerButton"
-                if imgui.selectable("None")[0]:
-                    self.parent.remove_child(self)
+        if imgui.begin_menu("Change Floor Type"):
+            if imgui.selectable("Button")[0]:
+                self.type = "Button"
+            if imgui.selectable("Player Button")[0]:
+                self.type = "PlayerButton"
+            if imgui.selectable("None")[0]:
+                self.parent.remove_child(self)
 
-        with imgui.begin_menu("Edit Floor") as submenu:
-            if submenu.opened:
-                changed, value = imgui.input_text("Type", self.type, 64)
-                if changed:
-                    self.type = value
-                changed, value = imgui.input_text("Extra Data", self.extra_data, 64)
-                if changed:
-                    self.extra_data = value
+            imgui.end_menu()
+
+        if imgui.begin_menu("Edit Floor"):
+            changed, value = imgui.input_text("Type", self.type, 64)
+            if changed:
+                self.type = value
+            changed, value = imgui.input_text("Extra Data", self.extra_data, 64)
+            if changed:
+                self.extra_data = value
+
+            imgui.end_menu()
     
     def empty_menu(parent, px, py):
-        with imgui.begin_menu("Change Floor Type") as submenu:
-            if submenu.opened:
-                if imgui.selectable("Button")[0]:
-                    parent.place_child(px, py, Floor(px, py, "Button", ""))
-                if imgui.selectable("Player Button")[0]:
-                    parent.place_child(px, py, Floor(px, py, "PlayerButton", ""))
-                if imgui.selectable("None")[0]:
-                    pass # already none
+        if imgui.begin_menu("Change Floor Type"):
+            if imgui.selectable("Button")[0]:
+                parent.place_child(px, py, Floor(px, py, "Button", ""))
+            if imgui.selectable("Player Button")[0]:
+                parent.place_child(px, py, Floor(px, py, "PlayerButton", ""))
+            if imgui.selectable("None")[0]:
+                pass # already none
+
+            imgui.end_menu()
 
 class Level:
     def __init__(self, name, data):

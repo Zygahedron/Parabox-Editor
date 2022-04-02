@@ -21,8 +21,8 @@ def show_editor(level, overlay_draw_list):
             50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*50,
             condition=imgui.APPEARING
         )
-        with imgui.begin(str(block.id) + " : " + level.name):
-            with imgui.begin_child("nodrag", 0, 0, True, imgui.WINDOW_NO_MOVE):
+        if imgui.begin(str(block.id) + " : " + level.name):
+            if imgui.begin_child("nodrag", 0, 0, True, imgui.WINDOW_NO_MOVE):
                 draw_list = imgui.get_window_draw_list()
                 x, y = imgui.get_window_position()
                 x += 2
@@ -57,33 +57,35 @@ def show_editor(level, overlay_draw_list):
                                     cursor_held = pickup
 
                 if (level.menuing or hovered or [0])[0] == block:
-                    with imgui.begin_popup_context_window() as menu:
-                        if menu.opened:
-                            if not level.menuing:
-                                level.menuing = hovered
-                            parent, px, py = level.menuing
-                            has_floor = False
-                            first = True
-                            for block in parent.get_children(px, py):
-                                if first:
-                                    first = False
-                                else:
-                                    imgui.separator()
-                                if type(block) == Floor:
-                                    has_floor = True
-                                block.menu()
-                            if not has_floor:
-                                if not first:
-                                    imgui.separator()
-                                Floor.empty_menu(parent, px, py)
-                        else:
-                            level.menuing = None
+                    if imgui.begin_popup_context_window():
+                        if not level.menuing:
+                            level.menuing = hovered
+                        parent, px, py = level.menuing
+                        has_floor = False
+                        first = True
+                        for block in parent.get_children(px, py):
+                            if first:
+                                first = False
+                            else:
+                                imgui.separator()
+                            if type(block) == Floor:
+                                has_floor = True
+                            block.menu()
+                        if not has_floor:
+                            if not first:
+                                imgui.separator()
+                            Floor.empty_menu(parent, px, py)
+                        imgui.end_popup()
+                    else:
+                        level.menuing = None
+            imgui.end_child()
+        imgui.end()
 
     window_size = imgui.get_io().display_size
     imgui.set_next_window_size(window_size.x - 60, 80, condition=imgui.APPEARING)
     imgui.set_next_window_position(30, window_size.y - 110, condition=imgui.APPEARING)
-    with imgui.begin("Palette"):
-        with imgui.begin_child("nodrag", 0, 0, False, imgui.WINDOW_NO_MOVE):
+    if imgui.begin("Palette"):
+        if imgui.begin_child("nodrag", 0, 0, False, imgui.WINDOW_NO_MOVE):
 
             w, h = imgui.get_content_region_available()
             palette_width = int(w / 50)
@@ -125,22 +127,24 @@ def show_editor(level, overlay_draw_list):
                                 level.blocks[str(level.next_free)] = Block(0, 0, str(level.next_free), 5, 5, 0.6, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0)
 
             if (level.menuing or hovered or [0])[0] == None:
-                with imgui.begin_popup_context_window() as menu:
-                    if menu.opened:
-                        if not level.menuing:
-                            level.menuing = hovered
-                        _, i = level.menuing
-                        block = sorted(level.blocks.items())[i - len(samples)][1]
-                        block.menu()
-                        imgui.separator()
-                        if imgui.selectable("Delete Block")[0]:
-                            while len(block.children):
-                                block.remove_child(block.children[0])
-                            if block.parent:
-                                block.parent.remove_child(block)
-                            del level.blocks[block.id]
-                    else:
-                        level.menuing = None
+                if imgui.begin_popup_context_window():
+                    if not level.menuing:
+                        level.menuing = hovered
+                    _, i = level.menuing
+                    block = sorted(level.blocks.items())[i - len(samples)][1]
+                    block.menu()
+                    imgui.separator()
+                    if imgui.selectable("Delete Block")[0]:
+                        while len(block.children):
+                            block.remove_child(block.children[0])
+                        if block.parent:
+                            block.parent.remove_child(block)
+                        del level.blocks[block.id]
+                    imgui.end_popup()
+                else:
+                    level.menuing = None
+            imgui.end_child()
+        imgui.end()
 
     if cursor_held:
         x, y = imgui.get_mouse_position()

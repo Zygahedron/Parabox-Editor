@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import multiprocessing
+# import multiprocessing
 # import glfw
 from sdl2 import *
 import ctypes
@@ -62,81 +62,83 @@ def main():
         overlay_draw_list = imgui.get_overlay_draw_list()
 
         menu_choice = None
-        with imgui.begin_main_menu_bar():
-            with imgui.begin_menu("File", True) as menu:
-                if menu.opened:
-                    if imgui.menu_item("Open...")[0]:
-                        menu_choice = "file.open"
-                    if imgui.menu_item("Save", enabled = open_level != None)[0]:
-                        save_data = open_level.save()
-                        with open(open_level_name + ".txt", "x" if new else "w") as file:
-                            file.write(save_data)
-                    if imgui.menu_item("Save As...", enabled = open_level != None)[0]:
-                        menu_choice = "file.saveas"
-                    imgui.separator()
-                    if imgui.menu_item("Quit")[0]:
-                        break # while not window_should_close
+        if imgui.begin_main_menu_bar():
+            if imgui.begin_menu("File", True):
+                if imgui.menu_item("Open...")[0]:
+                    menu_choice = "file.open"
+                if imgui.menu_item("Save", enabled = open_level != None)[0]:
+                    save_data = open_level.save()
+                    with open(open_level_name + ".txt", "x" if new else "w") as file:
+                        file.write(save_data)
+                if imgui.menu_item("Save As...", enabled = open_level != None)[0]:
+                    menu_choice = "file.saveas"
+                imgui.separator()
+                if imgui.menu_item("Quit")[0]:
+                    break # while not window_should_close
+
+                imgui.end_menu()
+            imgui.end_main_menu_bar()
 
         if menu_choice == "file.open":
             imgui.open_popup("file.open")
             file_choice = 0
-        with imgui.begin_popup("file.open") as popup:
-            if popup.opened:
-                folder_changed, levels_folder = imgui.input_text("Levels folder", levels_folder, 256)
-                search_changed, levels_search = imgui.input_text("Search", levels_search, 256)
-                try:
-                    if folder_changed or not files:
-                        os.chdir(os.path.expanduser(levels_folder))
-                        search_changed = True
-                    if search_changed:
-                        files = glob.glob(levels_search + "*.txt")
-                        files = [file.removesuffix(".txt") for file in files]
+        if imgui.begin_popup("file.open"):
+            folder_changed, levels_folder = imgui.input_text("Levels folder", levels_folder, 256)
+            search_changed, levels_search = imgui.input_text("Search", levels_search, 256)
+            try:
+                if folder_changed or not files:
+                    os.chdir(os.path.expanduser(levels_folder))
+                    search_changed = True
+                if search_changed:
+                    files = glob.glob(levels_search + "*.txt")
+                    files = [file.removesuffix(".txt") for file in files]
 
-                    _, file_choice = imgui.listbox("Levels", file_choice, files)
+                _, file_choice = imgui.listbox("Levels", file_choice, files)
 
-                    if imgui.button("Open"):
-                        open_level_name = files[file_choice]
-                        with open(open_level_name + ".txt") as file:
-                            open_level = Level(open_level_name, file.read())
-                        imgui.close_current_popup()
+                if imgui.button("Open"):
+                    open_level_name = files[file_choice]
+                    with open(open_level_name + ".txt") as file:
+                        open_level = Level(open_level_name, file.read())
+                    imgui.close_current_popup()
 
-                except Exception as e:
-                    imgui.text_ansi("Failed to load levels folder...")
-                    imgui.text_ansi(str(e))
-                    error = traceback.format_exc()
+            except Exception as e:
+                imgui.text_ansi("Failed to load levels folder...")
+                imgui.text_ansi(str(e))
+                error = traceback.format_exc()
+            imgui.end_popup()
         
         if menu_choice == "file.saveas":
             imgui.open_popup("file.saveas")
             file_choice = 0
-        with imgui.begin_popup("file.saveas") as popup:
-            if popup.opened:
-                folder_changed, levels_folder = imgui.input_text("Levels folder", levels_folder, 256)
-                name_changed, open_level_name = imgui.input_text("Name", open_level_name, 256)
-                try:
-                    if folder_changed or not files:
-                        os.chdir(os.path.expanduser(levels_folder))
-                        search_changed = True
-                    if search_changed:
-                        files = glob.glob(levels_search + "*.txt")
-                        files = [file.removesuffix(".txt") for file in files]
-                    if name_changed:
-                        file_choice = -1
+        if imgui.begin_popup("file.saveas"):
+            folder_changed, levels_folder = imgui.input_text("Levels folder", levels_folder, 256)
+            name_changed, open_level_name = imgui.input_text("Name", open_level_name, 256)
+            try:
+                if folder_changed or not files:
+                    os.chdir(os.path.expanduser(levels_folder))
+                    search_changed = True
+                if search_changed:
+                    files = glob.glob(levels_search + "*.txt")
+                    files = [file.removesuffix(".txt") for file in files]
+                if name_changed:
+                    file_choice = -1
 
-                    clicked, file_choice = imgui.listbox("Levels", file_choice, files)
-                    if clicked:
-                        open_level_name = files[file_choice]
+                clicked, file_choice = imgui.listbox("Levels", file_choice, files)
+                if clicked:
+                    open_level_name = files[file_choice]
 
-                    new = file_choice == -1
-                    if imgui.button("Save New" if new else "Overwrite"):
-                        save_data = open_level.save()
-                        with open(open_level_name + ".txt", "x" if new else "w") as file:
-                            file.write(save_data)
-                        imgui.close_current_popup()
+                new = file_choice == -1
+                if imgui.button("Save New" if new else "Overwrite"):
+                    save_data = open_level.save()
+                    with open(open_level_name + ".txt", "x" if new else "w") as file:
+                        file.write(save_data)
+                    imgui.close_current_popup()
 
-                except Exception as e:
-                    imgui.text_ansi("Failed to load levels folder...")
-                    imgui.text_ansi(str(e))
-                    error = traceback.format_exc()
+            except Exception as e:
+                imgui.text_ansi("Failed to load levels folder...")
+                imgui.text_ansi(str(e))
+                error = traceback.format_exc()
+            imgui.end_popup()
 
         if open_level:
             show_editor(open_level, overlay_draw_list)
@@ -203,7 +205,7 @@ def impl_pysdl2_init():
 
 
 if __name__ == "__main__":
-    # pyinstaller infinite loop fix???
-    multiprocessing.freeze_support()
+    # # pyinstaller infinite loop fix???
+    # multiprocessing.freeze_support()
     print("A")
     main()
