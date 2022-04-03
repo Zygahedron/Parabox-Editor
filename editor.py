@@ -30,21 +30,24 @@ class Editor:
 
         self.error = None
 
-    def main_loop(self):
+        imgui.get_io().ini_file_name = b""
+
+    def main_loop(self, keyboard):
         overlay_draw_list = imgui.get_overlay_draw_list()
+        io = imgui.get_io()
 
         menu_choice = None
         if imgui.begin_main_menu_bar():
             if imgui.begin_menu("File", True):
-                if imgui.menu_item("New")[0]:
+                if imgui.menu_item("New", "ctrl+n")[0]:
                     self.level = Level("untitled", "version 4\n#\n")
-                if imgui.menu_item("Open...")[0]:
+                if imgui.menu_item("Open...", "ctrl+o")[0]:
                     menu_choice = "file.open"
-                if imgui.menu_item("Save", enabled = (self.level != None and self.files != None))[0]:
+                if imgui.menu_item("Save", "ctrl+s", enabled = (self.level != None and self.files != None))[0]:
                     save_data = self.level.save()
                     with open(self.level_name + ".txt", "w" if os.path.exists(self.level_name + ".txt") else "x") as file:
                         file.write(save_data)
-                if imgui.menu_item("Save As...", enabled = self.level != None)[0]:
+                if imgui.menu_item("Save As...", "ctrl+shift+s", enabled = self.level != None)[0]:
                     menu_choice = "file.saveas"
                 imgui.separator()
                 if imgui.menu_item("Quit")[0]:
@@ -56,6 +59,19 @@ class Editor:
                 self.level.edit_menu()
                 imgui.end_menu()
             imgui.end_main_menu_bar()
+
+        if io.key_ctrl:
+            if keyboard.n.pressed:
+                self.level = Level("untitled", "version 4\n#\n")
+            if keyboard.o.pressed:
+                menu_choice = "file.open"
+            if keyboard.s.pressed and self.level != None:
+                if io.key_shift:
+                    menu_choice = "file.saveas"
+                elif self.files != None:
+                    save_data = self.level.save()
+                    with open(self.level_name + ".txt", "w" if os.path.exists(self.level_name + ".txt") else "x") as file:
+                        file.write(save_data)
 
         if menu_choice == "file.open":
             imgui.open_popup("file.open")
@@ -285,8 +301,8 @@ class Editor:
                             imgui.end_popup()
                         else:
                             self.level.menuing = None
-                    imgui.end_child()
-                imgui.end()
+                imgui.end_child()
+            imgui.end()
 
             if self.cursor_held:
                 x, y = imgui.get_mouse_position()

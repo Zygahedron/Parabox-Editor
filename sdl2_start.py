@@ -13,6 +13,24 @@ import time
 
 from editor import *
 
+class Key:
+    def __init__(self):
+        self.pressed = False
+        self.down = False
+        self.released = False
+class Keyboard:
+    def __init__(self):
+        self.n = Key()
+        self.o = Key()
+        self.s = Key()
+
+        self.map = {
+            SDL_SCANCODE_N: self.n,
+            SDL_SCANCODE_O: self.o,
+            SDL_SCANCODE_S: self.s,
+        }
+keyboard = Keyboard()
+
 def main():
     global levels_folder
     
@@ -30,6 +48,14 @@ def main():
             if event.type == SDL_QUIT:
                 running = False
                 break
+            if event.type == SDL_KEYDOWN:
+                if event.key.keysym.scancode in keyboard.map:
+                    keyboard.map[event.key.keysym.scancode].pressed = True
+                    keyboard.map[event.key.keysym.scancode].down = True
+            if event.type == SDL_KEYUP:
+                if event.key.keysym.scancode in keyboard.map:
+                    keyboard.map[event.key.keysym.scancode].released = True
+                    keyboard.map[event.key.keysym.scancode].down = False
             impl.process_event(event)
         # glfw.poll_events()
         impl.process_inputs()
@@ -40,7 +66,11 @@ def main():
 
         imgui.new_frame()
 
-        editor.main_loop()
+        editor.main_loop(keyboard)
+
+        for key in keyboard.map.values():
+            key.pressed = False
+            key.released = False
 
         gl.glClearColor(0.3, 0.3, 0.3, 1)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)

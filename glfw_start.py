@@ -22,12 +22,40 @@ elif platform.system() == "Darwin": # Mac OS X
 elif platform.system() == "Linux":
     levels_folder = "~/.config/unity3d/Patrick Traynor/Patrick's Parabox"
 
+class Key:
+    def __init__(self):
+        self.pressed = False
+        self.down = False
+        self.released = False
+class Keyboard:
+    def __init__(self):
+        self.n = Key()
+        self.o = Key()
+        self.s = Key()
+
+        self.map = {
+            glfw.KEY_N: self.n,
+            glfw.KEY_O: self.o,
+            glfw.KEY_S: self.s,
+        }
+keyboard = Keyboard()
+
+def key_callback( window, key, scancode, action, mods):
+    if key in keyboard.map:
+        if action == glfw.PRESS:
+            keyboard.map[key].pressed = True
+            keyboard.map[key].down = True
+        if action == glfw.RELEASE:
+            keyboard.map[key].released = True
+            keyboard.map[key].down = False
+
 def main():
     global levels_folder
 
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
+    glfw.set_key_callback(window, key_callback)
 
     levels_search = ""
     files = None
@@ -45,11 +73,12 @@ def main():
 
         imgui.new_frame()
 
-        if not editor.main_loop():
+        if not editor.main_loop(keyboard):
             break
 
-        if error:
-            imgui.text_ansi(error)
+        for key in keyboard.map.values():
+            key.pressed = False
+            key.released = False
 
         gl.glClearColor(0.3, 0.3, 0.3, 1)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
