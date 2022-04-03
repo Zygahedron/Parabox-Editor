@@ -639,4 +639,6 @@ class Level:
         return str.replace(".0", "")
 
     def edit_menu(self):
-        imgui.input_text_multiline("Metadata", self.metadata, 2048)
+        changed, value = imgui.input_text_multiline("Metadata", self.metadata, 2048)
+        if changed:
+            self.metadata = value
