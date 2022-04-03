@@ -1,4 +1,5 @@
 import colorsys, imgui
+from re import S
 
 def draw_eyes(draw_list, x, y, size, solid, color=0x7f000000):
     if solid:
@@ -473,10 +474,10 @@ class Wall:
 class Floor:
     id = None
 
-    def __init__(self, x, y, type, extra_data):
+    def __init__(self, x, y, floor_type, extra_data):
         self.x = int(x)
         self.y = int(y)
-        self.type = type
+        self.type = floor_type
         self.extra_data = extra_data
 
         self.parent = None
@@ -545,59 +546,65 @@ class Level:
         data = data.split("\n")
         indent = 0
         last_block = None
+        parent = None
         ref_exits = {}
         for line in data:
             trimmed = line.replace("\t","")
             last_indent = indent
             indent = len(line) - len(trimmed)
+            if indent == last_indent:
+                pass
+            elif indent == 0:
+                parent = None
+            elif indent > last_indent:
+                if type(last_block) == Block:
+                    parent = last_block
+                else:
+                    raise "Error parsing level: Indent after non-Block"
+            elif indent < last_indent:
+                for _ in range(last_indent - indent):
+                    parent = parent.parent
+
             args = trimmed.split(" ")
-            type = args.pop(0)
-            if type == "Block":
+            block_type = args.pop(0)
+            if block_type == "Block":
                 [x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
                 block = Block(x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect)
-                if indent == 0 or int(floatinspace):
-                    self.roots.append(block)
-                elif indent > last_indent:
-                    block.parent = last_block
-                elif indent < last_indent:
-                    block.parent = last_block.parent.parent
+                block.parent = parent
+                if parent:
+                    parent.place_child(int(x), int(y), block)
                 else:
-                    block.parent = last_block.parent
-                if block.parent:
-                    block.parent.place_child(int(x), int(y), block)
+                    self.roots.append(block)
                 last_block = block
                 if not id in self.blocks:
                     self.blocks[id] = block
                 else:
                     print("duplicate block with id " + id)
-            elif type == "Ref":
+            elif block_type == "Ref":
                 [x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
                 ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect)
                 if int(exitblock) and not int(infenter):
                     ref_exits[id] = ref
-                if indent > last_indent:
-                    ref.parent = last_block
+                if parent:
+                    parent.place_child(int(x), int(y), ref)
                 else:
-                    ref.parent = last_block.parent
-                ref.parent.place_child(int(x), int(y), ref)
+                    self.roots.append(ref)
                 last_block = ref
-            elif type == "Wall":
+            elif block_type == "Wall":
                 [x, y, player, possessable, playerorder, *_] = args
                 wall = Wall(x, y, player, possessable, playerorder)
-                if indent > last_indent:
-                    wall.parent = last_block
+                if parent:
+                    parent.place_child(int(x), int(y), wall)
                 else:
-                    wall.parent = last_block.parent
-                wall.parent.place_child(int(x), int(y), wall)
+                    print("Discarding wall at root level")
                 last_block = wall
-            elif type == "Floor":
-                [x, y, type, *rest] = args
-                floor = Floor(x, y, type, " ".join(rest))
-                if indent > last_indent:
-                    floor.parent = last_block
+            elif block_type == "Floor":
+                [x, y, floor_type, *rest] = args
+                floor = Floor(x, y, floor_type, " ".join(rest))
+                if parent:
+                    parent.place_child(int(x), int(y), floor)
                 else:
-                    floor.parent = last_block.parent
-                floor.parent.place_child(int(x), int(y), floor)
+                    print("Discarding floor at root level")
                 last_block = floor
                 
             else:
@@ -628,3 +635,6 @@ class Level:
             saved_blocks = []
 
         return str.replace(".0", "")
+
+    def edit_menu(self):
+        imgui.input_text_multiline("Metadata", self.metadata, 2048)
