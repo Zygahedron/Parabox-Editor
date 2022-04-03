@@ -64,6 +64,8 @@ def main():
         menu_choice = None
         if imgui.begin_main_menu_bar():
             if imgui.begin_menu("File", True):
+                if imgui.menu_item("New")[0]:
+                    open_level = Level("untitled", "version 4\n#\n")
                 if imgui.menu_item("Open...")[0]:
                     menu_choice = "file.open"
                 if imgui.menu_item("Save", enabled = open_level != None)[0]:

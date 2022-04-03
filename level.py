@@ -60,7 +60,7 @@ class Block:
             return self
 
     def make_ref(self, new=True):
-        return Ref(0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, -1, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+        return Ref(0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, "-1", self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
     
     def save(self, indent, saved_blocks, void=False):
         if self in saved_blocks:
@@ -276,7 +276,7 @@ class Ref:
         self.infexitnum = int(infexitnum)
         self.infenter = int(infenter)
         self.infenternum = int(infenternum)
-        self.infenterid = int(infenterid)
+        self.infenterid = infenterid
         self.player = int(player)
         self.possessable = int(possessable)
         self.playerorder = int(playerorder)
@@ -318,6 +318,9 @@ class Ref:
             clicked, state = imgui.checkbox("Flip Horizontally", self.fliph)
             if clicked:
                 self.fliph = int(state)
+            clicked, state = imgui.checkbox("Float in Space", self.floatinspace)
+            if clicked:
+                self.floatinspace = int(state)
             imgui.separator()
 
             if imgui.selectable("Clone")[0]:
@@ -325,13 +328,13 @@ class Ref:
                 self.infexitnum = 0
                 self.infenter = 0
                 self.infenternum = 0
-                self.infenterid = -1
+                self.infenterid = "-1"
             if imgui.selectable("Infinite Exit")[0]:
                 self.infexit = 1
                 self.infexitnum = 0
                 self.infenter = 0
                 self.infenternum = 0
-                self.infenterid = -1
+                self.infenterid = "-1"
             if self.infexit:
                 changed, value = imgui.input_int("-> Layer", self.infexitnum)
                 if changed:
