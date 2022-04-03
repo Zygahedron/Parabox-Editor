@@ -14,6 +14,7 @@ class Editor:
             Floor(0, 0, "Button", ""),
         ]
         
+        self.levels_folder = ""
         if platform.system() == "Windows":
             self.levels_folder = "~\Appdata\LocalLow\Patrick Traynor\Patrick's Parabox\custom_levels"
         elif platform.system() == "Darwin": # Mac OS X
@@ -39,7 +40,7 @@ class Editor:
                     self.level = Level("untitled", "version 4\n#\n")
                 if imgui.menu_item("Open...")[0]:
                     menu_choice = "file.open"
-                if imgui.menu_item("Save", enabled = self.level != None)[0]:
+                if imgui.menu_item("Save", enabled = (self.level != None and self.files != None))[0]:
                     save_data = self.level.save()
                     with open(self.level_name + ".txt", "w" if os.path.exists(self.level_name + ".txt") else "x") as file:
                         file.write(save_data)
