@@ -631,7 +631,8 @@ class Level:
         while len(to_save):
             str += to_save[0].save(0, saved_blocks, True)
             for block in saved_blocks:
-                to_save.remove(block)
+                if block in to_save: # this shouldn't be false but hmmmm
+                    to_save.remove(block)
             saved_blocks = []
 
         return str.replace(".0", "")

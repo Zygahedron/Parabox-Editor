@@ -24,8 +24,8 @@ class Editor:
 
         self.levels_search = ""
         self.files = None
-        self.file_choice = 0
-        self.level_name = None
+        self.file_choice = -1
+        self.level_name = "untitled"
         self.level = None
 
         self.error = None
