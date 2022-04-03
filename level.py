@@ -66,7 +66,8 @@ class Block:
     def save(self, indent, saved_blocks, void=False):
         if self in saved_blocks:
             return self.make_ref(False).save(indent, saved_blocks)
-        saved_blocks.append(self)
+        else:
+            saved_blocks.append(self)
         line = ["Block", self.x, self.y, self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         for child in self.children:
