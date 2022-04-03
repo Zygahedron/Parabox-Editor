@@ -1,10 +1,12 @@
-# please help me figure out how to package this so people don't have to install everything to use it
+# To use:
+- Download the installer from the releases page (or build it yourself, see below)
+- Run the installer
+- Launch the program from the shortcut the installer creates for you
+# To build:
+- Install [https://pynsist.readthedocs.io/en/latest/index.html](Pynsist)
+- Run `pynsist build.ini`
+- Output goes in `build/nsis/Zygans_Parabox_Editor_`(version)`.exe`
 
-on that note, here's what you need to install to use it:
-
-- python 3.10
-- pyimgui\[sdl2\] but manually build the [dev/version-2.0 branch](https://github.com/pyimgui/pyimgui/tree/dev/version-2.0)
-
-I think that's it but I'm probably wrong who knows
-
-also this is definitely not a finished thing there will be problems and bugs please report them
+# To develop:
+- Python 3.9.11 (or higher)
+- pyimgui 1.4.1 (or higher)

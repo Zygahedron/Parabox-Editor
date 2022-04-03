@@ -547,56 +547,58 @@ class Level:
             trimmed = line.replace("\t","")
             last_indent = indent
             indent = len(line) - len(trimmed)
-            match trimmed.split(" "):
-                case ["Block", x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_]:
-                    block = Block(x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect)
-                    if indent == 0 or int(floatinspace):
-                        self.roots.append(block)
-                    elif indent > last_indent:
-                        block.parent = last_block
-                    elif indent < last_indent:
-                        block.parent = last_block.parent.parent
-                    else:
-                        block.parent = last_block.parent
-                    if block.parent:
-                        block.parent.place_child(int(x), int(y), block)
-                    last_block = block
-                    if not id in self.blocks:
-                        self.blocks[id] = block
-                    else:
-                        print("duplicate block with id " + id)
-
-                case ["Ref", x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_]:
-                    ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect)
-                    if int(exitblock) and not int(infenter):
-                        ref_exits[id] = ref
-                    if indent > last_indent:
-                        ref.parent = last_block
-                    else:
-                        ref.parent = last_block.parent
-                    ref.parent.place_child(int(x), int(y), ref)
-                    last_block = ref
-
-                case ["Wall", x, y, player, possessable, playerorder, *_]:
-                    wall = Wall(x, y, player, possessable, playerorder)
-                    if indent > last_indent:
-                        wall.parent = last_block
-                    else:
-                        wall.parent = last_block.parent
-                    wall.parent.place_child(int(x), int(y), wall)
-                    last_block = wall
-
-                case ["Floor", x, y, type, *rest]:
-                    floor = Floor(x, y, type, " ".join(rest))
-                    if indent > last_indent:
-                        floor.parent = last_block
-                    else:
-                        floor.parent = last_block.parent
-                    floor.parent.place_child(int(x), int(y), floor)
-                    last_block = floor
-                    
-                case _:
-                    pass
+            args = trimmed.split(" ")
+            type = args.pop(0)
+            if type == "Block":
+                [x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
+                block = Block(x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect)
+                if indent == 0 or int(floatinspace):
+                    self.roots.append(block)
+                elif indent > last_indent:
+                    block.parent = last_block
+                elif indent < last_indent:
+                    block.parent = last_block.parent.parent
+                else:
+                    block.parent = last_block.parent
+                if block.parent:
+                    block.parent.place_child(int(x), int(y), block)
+                last_block = block
+                if not id in self.blocks:
+                    self.blocks[id] = block
+                else:
+                    print("duplicate block with id " + id)
+            elif type == "Ref":
+                [x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
+                ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect)
+                if int(exitblock) and not int(infenter):
+                    ref_exits[id] = ref
+                if indent > last_indent:
+                    ref.parent = last_block
+                else:
+                    ref.parent = last_block.parent
+                ref.parent.place_child(int(x), int(y), ref)
+                last_block = ref
+            elif type == "Wall":
+                [x, y, player, possessable, playerorder, *_] = args
+                wall = Wall(x, y, player, possessable, playerorder)
+                if indent > last_indent:
+                    wall.parent = last_block
+                else:
+                    wall.parent = last_block.parent
+                wall.parent.place_child(int(x), int(y), wall)
+                last_block = wall
+            elif type == "Floor":
+                [x, y, type, *rest] = args
+                floor = Floor(x, y, type, " ".join(rest))
+                if indent > last_indent:
+                    floor.parent = last_block
+                else:
+                    floor.parent = last_block.parent
+                floor.parent.place_child(int(x), int(y), floor)
+                last_block = floor
+                
+            else:
+                pass
         
         # replace exitable refs with original blocks
         for id, ref in ref_exits.items():
