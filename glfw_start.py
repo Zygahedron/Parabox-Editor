@@ -71,6 +71,10 @@ def main():
         glfw.poll_events()
         impl.process_inputs()
 
+        if not glfw.get_window_attrib(window, glfw.FOCUSED):
+            # use fewer resources when not in front
+            continue
+
         imgui.new_frame()
 
         if not editor.main_loop(keyboard):

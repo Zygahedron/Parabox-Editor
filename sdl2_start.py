@@ -64,6 +64,9 @@ def main():
             continue
         last_time = time.time()
 
+        if not SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS:
+            continue
+
         imgui.new_frame()
 
         editor.main_loop(keyboard)
