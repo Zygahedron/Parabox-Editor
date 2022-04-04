@@ -40,22 +40,12 @@ class Keyboard:
         }
 keyboard = Keyboard()
 
-def key_callback( window, key, scancode, action, mods):
-    if key in keyboard.map:
-        if action == glfw.PRESS:
-            keyboard.map[key].pressed = True
-            keyboard.map[key].down = True
-        if action == glfw.RELEASE:
-            keyboard.map[key].released = True
-            keyboard.map[key].down = False
-
 def main():
     global levels_folder
 
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
-    glfw.set_key_callback(window, key_callback)
 
     levels_search = ""
     files = None
@@ -80,9 +70,15 @@ def main():
         if not editor.main_loop(keyboard):
             break
 
-        for key in keyboard.map.values():
-            key.pressed = False
-            key.released = False
+        for id, key in keyboard.map.items():
+            if glfw.get_key(window, id):
+                key.pressed = not key.down
+                key.down = True
+                key.released = False
+            else:
+                key.released = key.down
+                key.down = False
+                key.pressed = False
 
         gl.glClearColor(0.3, 0.3, 0.3, 1)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
