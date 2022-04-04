@@ -72,26 +72,30 @@ class Block:
         line = ["Block", self.x, self.y, self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         for child in self.children:
-            block += child.save(indent + 1, saved_blocks)
+            if 0 <= child.x < block.width and 0 <= child.y < block.height:
+                block += child.save(indent + 1, saved_blocks)
+            else:
+                pass # discard out of bounds children on save
         return block
     
-    def draw(self, draw_list, x, y, width, height, level):
+    def draw(self, draw_list, x, y, width, height, level, depth):
         draw_list.add_rect_filled(x, y, x+width, y+height, self.color())
-        draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
+        if depth >= 0: # don't draw outer border on block windows
+            draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
 
         inner_width = width / self.width
         inner_height = height / self.height
-        if min(inner_width,inner_height) < 1:
+        if min(inner_width,inner_height) < 1 or depth > 10:
             return
         for child in self.children:
-            child.draw(draw_list, x + child.x * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level)
+            child.draw(draw_list, x + child.x * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1)
 
         if self.player:
             draw_eyes(draw_list, x, y, width, height, True)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
-        if min(width,height) > 15:
+        if min(width,height) > 15 and depth >= 0:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
     def color(self):
@@ -297,9 +301,9 @@ class Ref:
         line = ["Ref", self.x, self.y, self.id, self.exitblock, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
-    def draw(self, draw_list, x, y, width, height, level):
+    def draw(self, draw_list, x, y, width, height, level, depth):
         if self.id in level.blocks:
-            level.blocks[self.id].draw(draw_list, x, y, width, height, level)
+            level.blocks[self.id].draw(draw_list, x, y, width, height, level, depth)
         else:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, "Invalid Reference!")
         if self.infexit:
@@ -434,7 +438,7 @@ class Wall:
     def copy(self, held=False):
         return Wall(0, 0, self.player, self.possessable, self.playerorder)
     
-    def draw(self, draw_list, x, y, width, height, level):
+    def draw(self, draw_list, x, y, width, height, level, depth):
         draw_list.add_rect_filled(x + width/10, y + height/10, x + width*9/10, y + height*9/10, self.color())
 
         if self.player:
@@ -492,7 +496,7 @@ class Floor:
         line = ["Floor", self.x, self.y, self.type]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
-    def draw(self, draw_list, x, y, width, height, level):
+    def draw(self, draw_list, x, y, width, height, level, depth):
         draw_list.add_rect(x + width/10, y + height/10, x + width*9/10, y + height*9/10, 0x7fffffff, thickness=min(width,height)/20)
 
         if self.type == "PlayerButton":

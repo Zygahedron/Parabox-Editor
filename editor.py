@@ -138,7 +138,7 @@ class Editor:
             for block in self.level.blocks.values():
                 if block.fillwithwalls:
                     continue
-                imgui.set_next_window_size(130, 150, condition=imgui.APPEARING)
+                imgui.set_next_window_size(130, 149, condition=imgui.APPEARING)
                 imgui.set_next_window_position(
                     (30 + int(block.id) * 150) % (imgui.get_io().display_size.x - 150),
                     50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*50,
@@ -148,11 +148,11 @@ class Editor:
                     if imgui.begin_child("nodrag", 0, 0, True, imgui.WINDOW_NO_MOVE):
                         draw_list = imgui.get_window_draw_list()
                         x, y = imgui.get_window_position()
-                        x += 2
-                        y += 2
+                        x += 4
+                        y += 4
                         w, h = imgui.get_content_region_available()
-                        w += 12
-                        block.draw(draw_list, x, y, w, w * block.height/block.width, self.level)
+                        w += 8
+                        block.draw(draw_list, x, y, w, w * block.height/block.width, self.level, -1)
 
                         pos = imgui.get_mouse_position()
                         px = int((pos.x - x) / (w / block.width))
@@ -221,10 +221,10 @@ class Editor:
 
                     i = 0
                     for sample in self.samples:
-                        sample.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level)
+                        sample.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0)
                         i += 1
                     for id, block in sorted(self.level.blocks.items()):
-                        block.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level)
+                        block.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0)
                         i += 1
                     px, py = x + (i % palette_width)*50, y + int(i / palette_width)*50
                     draw_list.add_rect(px, py, px + 40, py + 40, 0x7fffffff, thickness=2)
@@ -306,7 +306,7 @@ class Editor:
 
             if self.cursor_held:
                 x, y = imgui.get_mouse_position()
-                self.cursor_held.draw(overlay_draw_list, x - 10, y - 10, 20, 20, self.level)
+                self.cursor_held.draw(overlay_draw_list, x - 10, y - 10, 20, 20, self.level, 0)
 
         if self.error:
             imgui.text_ansi(self.error)
