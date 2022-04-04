@@ -54,25 +54,33 @@ class Block:
         self.children = []
 
     def copy(self, held=False):
-        if held or self.parent: # if I already exist somewhere:
+        if (held or self.parent): # if I already exist somewhere:
+            if self.fillwithwalls: # duplicate solid blocks
+                return self.full_copy()
             # return ref to self
             return self.make_ref()
         else: # if I don't exist anywhere:
             # no need to copy
             return self
 
+    def full_copy(self, id=None):
+        new = Block(0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+        for child in self.children:
+            new.place_child(child.x, child.y, child.copy())
+        return new
+
     def make_ref(self, new=True):
         return Ref(0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, "-1", self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
     
     def save(self, indent, saved_blocks, void=False):
-        if self in saved_blocks:
+        if self in saved_blocks and not self.fillwithwalls:
             return self.make_ref(False).save(indent, saved_blocks)
         else:
             saved_blocks.append(self)
         line = ["Block", self.x, self.y, self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         for child in self.children:
-            if 0 <= child.x < block.width and 0 <= child.y < block.height:
+            if 0 <= child.x < self.width and 0 <= child.y < self.height:
                 block += child.save(indent + 1, saved_blocks)
             else:
                 pass # discard out of bounds children on save
@@ -633,13 +641,14 @@ class Level:
             if not block.parent:
                 str += block.save(0, saved_blocks)
         for block in saved_blocks:
-            to_save.remove(block)
+            if block in to_save:
+                to_save.remove(block)
         saved_blocks = []
         # save blocks with recursive parents
         while len(to_save):
             str += to_save[0].save(0, saved_blocks, True)
             for block in saved_blocks:
-                if block in to_save: # this shouldn't be false but hmmmm
+                if block in to_save:
                     to_save.remove(block)
             saved_blocks = []
 

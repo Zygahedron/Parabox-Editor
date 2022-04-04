@@ -280,14 +280,13 @@ class Editor:
                                 if imgui.selectable("Duplicate Block")[0]:
                                     while str(self.level.next_free) in self.level.blocks:
                                         self.level.next_free += 1
-                                    new = self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), block.width, block.height, block.hue, block.sat, block.val, block.zoomfactor, block.fillwithwalls, block.player, block.possessable, block.playerorder, block.fliph, block.floatinspace, block.specialeffect)
-                                    for child in block.children:
-                                        new.place_child(child.x, child.y, child.copy())
+                                    self.level.blocks[str(self.level.next_free)] = block.full_copy(self.level.next_free)
                                 if imgui.selectable("Delete Block")[0]:
                                     while len(block.children):
                                         block.remove_child(block.children[0])
                                     if block.parent:
                                         block.parent.remove_child(block)
+                                    self.level.next_free = min(self.level.next_free, block.id)
                                     del self.level.blocks[block.id]
                             elif i < len(self.samples) + len(self.level.blocks) + 1:
                                 while str(self.level.next_free) in self.level.blocks:
