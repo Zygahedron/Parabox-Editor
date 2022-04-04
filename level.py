@@ -556,7 +556,6 @@ class Level:
         self.roots = []
         self.blocks = {}
         self.next_free = 0
-        self.menuing = None
 
         [self.metadata, data] = data.split("\n#\n")
         data = data.split("\n")

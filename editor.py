@@ -8,6 +8,10 @@ import traceback
 class Editor:
     def __init__(self):
         self.cursor_held = None
+        self.last_hovered = None
+        self.hovered = None
+        self.menuing = None
+        self.clicked = None
 
         self.samples = [
             Wall(0, 0, 0, 0, 0),
@@ -132,7 +136,8 @@ class Editor:
                 self.error = traceback.format_exc()
             imgui.end_popup()
 
-        hovered = None
+        self.last_hovered = self.hovered
+        self.hovered = None
 
         if self.level:
             for block in self.level.blocks.values():
@@ -157,13 +162,14 @@ class Editor:
                         pos = imgui.get_mouse_position()
                         px = int((pos.x - x) / (w / block.width))
                         py = block.height - 1 - int((pos.y - y) / (w / block.width))
+                        shift = imgui.get_io().key_shift
                         if imgui.is_window_hovered():
-                            hovered = (block, px, py)
-                            if imgui.is_mouse_clicked():
+                            self.hovered = (block, px, py)
+                            if imgui.is_mouse_clicked() or (shift and imgui.is_mouse_down() and self.hovered != self.last_hovered):
                                 pickup = block.get_child(px, py)
                                 last_held = self.cursor_held
                                 if self.cursor_held:
-                                    if imgui.get_io().key_shift:
+                                    if shift:
                                         to_place = self.cursor_held.copy(True)
                                     else:
                                         to_place = self.cursor_held
@@ -174,16 +180,25 @@ class Editor:
                                         pass # only one is floor, they can coexist
                                     else:
                                         block.remove_child(pickup)
-                                        if imgui.get_io().key_shift:
+                                        if shift:
                                             pickup = None
                                         else:
                                             self.cursor_held = pickup
+                                            self.clicked = self.hovered
+                            elif not shift and imgui.is_mouse_released() and self.clicked and self.hovered != self.clicked:
+                                clash = block.get_child(px, py)
+                                if not clash or ((type(clash) == Floor) != (type(self.cursor_held) == Floor)):
+                                    block.place_child(px, py, self.cursor_held)
+                                    self.cursor_held = None
+                            if imgui.is_mouse_released():
+                                self.clicked = None
 
-                        if (self.level.menuing or hovered or [0])[0] == block:
+
+                        if (self.menuing or self.hovered or [0])[0] == block:
                             if imgui.begin_popup_context_window():
-                                if not self.level.menuing:
-                                    self.level.menuing = hovered
-                                parent, px, py = self.level.menuing
+                                if not self.menuing:
+                                    self.menuing = self.hovered
+                                parent, px, py = self.menuing
                                 has_floor = False
                                 first = True
                                 for block in parent.get_children(px, py):
@@ -200,7 +215,7 @@ class Editor:
                                     Floor.empty_menu(parent, px, py)
                                 imgui.end_popup()
                             else:
-                                self.level.menuing = None
+                                self.menuing = None
                     imgui.end_child()
                 imgui.end()
 
@@ -236,7 +251,7 @@ class Editor:
                         px = int((pos.x - x) / 50)
                         py = int((pos.y - y) / 50)
                         i = px + py*palette_width
-                        hovered = (None, i)
+                        self.hovered = (None, i)
                         if imgui.is_mouse_clicked():
                             if self.cursor_held:
                                 self.cursor_held = None
@@ -244,18 +259,20 @@ class Editor:
                                 if i >= 0:
                                     if i < len(self.samples):
                                         self.cursor_held = self.samples[i].copy()
+                                        self.clicked = self.hovered
                                     elif i < len(self.samples) + len(self.level.blocks):
                                         self.cursor_held = sorted(self.level.blocks.items())[i - len(self.samples)][1].copy()
+                                        self.clicked = self.hovered
                                     elif i == len(self.samples) + len(self.level.blocks):
                                         while str(self.level.next_free) in self.level.blocks:
                                             self.level.next_free += 1
                                         self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 5, 5, 0.6, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0)
 
-                    if (self.level.menuing or hovered or [0])[0] == None:
+                    if (self.menuing or self.hovered or [0])[0] == None:
                         if imgui.begin_popup_context_window():
-                            if not self.level.menuing:
-                                self.level.menuing = hovered
-                            _, i = self.level.menuing
+                            if not self.menuing:
+                                self.menuing = self.hovered
+                            _, i = self.menuing
                             if i < len(self.samples):
                                 if type(self.samples[i]) == Wall:
                                     if imgui.selectable("Normal Wall")[0]:
@@ -299,7 +316,7 @@ class Editor:
                                     self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0)
                             imgui.end_popup()
                         else:
-                            self.level.menuing = None
+                            self.menuing = None
                 imgui.end_child()
             imgui.end()
 
