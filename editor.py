@@ -136,7 +136,7 @@ class Editor:
 
         if self.level:
             for block in self.level.blocks.values():
-                if block.fillwithwalls:
+                if block.fillwithwalls or block.width <= 0 or block.height <= 0:
                     continue
                 imgui.set_next_window_size(130, 149, condition=imgui.APPEARING)
                 imgui.set_next_window_position(
