@@ -83,12 +83,13 @@ class Block:
         if depth >= 0: # don't draw outer border on block windows
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
 
-        inner_width = width / self.width
-        inner_height = height / self.height
-        if min(inner_width,inner_height) < 1 or depth > 10:
-            return
-        for child in self.children:
-            child.draw(draw_list, x + child.x * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1)
+        if self.width > 0 and self.height > 0:
+            inner_width = width / self.width
+            inner_height = height / self.height
+            if min(inner_width,inner_height) < 1 or depth > 10:
+                return
+            for child in self.children:
+                child.draw(draw_list, x + child.x * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1)
 
         if self.player:
             draw_eyes(draw_list, x, y, width, height, True)
