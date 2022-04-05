@@ -649,7 +649,7 @@ class Level:
                     to_save.remove(block)
             saved_blocks = []
 
-        return str.replace(".0", "")
+        return str.replace(".0 ", " ")
 
     def edit_menu(self):
         changed, value = imgui.input_text_multiline("Metadata", self.metadata, 2048)
