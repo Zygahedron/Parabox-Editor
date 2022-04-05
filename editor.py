@@ -297,7 +297,7 @@ class Editor:
                                 if imgui.selectable("Duplicate Block")[0]:
                                     while str(self.level.next_free) in self.level.blocks:
                                         self.level.next_free += 1
-                                    self.level.blocks[str(self.level.next_free)] = block.full_copy(self.level.next_free)
+                                    self.level.blocks[str(self.level.next_free)] = block.full_copy(str(self.level.next_free))
                                 if imgui.selectable("Delete Block")[0]:
                                     while len(block.children):
                                         block.remove_child(block.children[0])

@@ -77,7 +77,7 @@ class Block:
             return self.make_ref(False).save(indent, saved_blocks)
         else:
             saved_blocks.append(self)
-        line = ["Block", self.x, self.y, self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
+        line = ["Block", self.x, self.y, self.id, self.width, self.height, f"{self.hue:1.3f}", f"{self.sat:1.3f}", f"{self.val:1.3f}", f"{self.zoomfactor:1.3f}", self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         for child in self.children:
             if 0 <= child.x < self.width and 0 <= child.y < self.height:
@@ -225,15 +225,11 @@ class Block:
             color_button(self, 0.55, 0.8, 1, "F")
             
             imgui.separator()
-            changed, value = imgui.input_float("Hue", self.hue)
+
+            r, g, b = colorsys.hsv_to_rgb(self.hue, self.sat, self.val)
+            changed, (r, g, b) = imgui.color_edit3("Color", r, g, b, imgui.COLOR_EDIT_HSV | imgui.COLOR_EDIT_FLOAT)
             if changed:
-                self.hue = value
-            changed, value = imgui.input_float("Saturation", self.sat)
-            if changed:
-                self.sat = value
-            changed, value = imgui.input_float("Value", self.val)
-            if changed:
-                self.val = value
+                self.hue, self.sat, self.val = colorsys.rgb_to_hsv(r, g, b)
 
             imgui.end_menu()
 
