@@ -185,7 +185,7 @@ class Editor:
                                         else:
                                             self.cursor_held = pickup
                                             self.clicked = self.hovered
-                            elif not shift and imgui.is_mouse_released() and self.clicked and self.hovered != self.clicked:
+                            elif not shift and imgui.is_mouse_released() and self.clicked and self.cursor_held and self.hovered != self.clicked:
                                 clash = block.get_child(px, py)
                                 if not clash or ((type(clash) == Floor) != (type(self.cursor_held) == Floor)):
                                     block.place_child(px, py, self.cursor_held)

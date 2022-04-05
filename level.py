@@ -135,6 +135,8 @@ class Block:
         return child
 
     def place_child(self, x, y, child):
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
+            return
         if type(child) == Floor:
             self.children.append(child)
         else:
