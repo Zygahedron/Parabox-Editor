@@ -303,7 +303,7 @@ class Editor:
                                         block.remove_child(block.children[0])
                                     if block.parent:
                                         block.parent.remove_child(block)
-                                    self.level.next_free = min(self.level.next_free, block.id)
+                                    self.level.next_free = min(self.level.next_free, int(block.id))
                                     del self.level.blocks[block.id]
                             elif i < len(self.samples) + len(self.level.blocks) + 1:
                                 while str(self.level.next_free) in self.level.blocks:
