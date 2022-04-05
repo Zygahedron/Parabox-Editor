@@ -212,7 +212,7 @@ class Block:
             imgui.end_menu()
 
         if imgui.begin_menu("Change Block Color"):
-            color_button(self, 0, 0, 0.5, "A")
+            color_button(self, 0, 0, 0.8, "A")
             imgui.same_line()
             color_button(self, 0.6, 0.8, 1, "B")
             imgui.same_line()

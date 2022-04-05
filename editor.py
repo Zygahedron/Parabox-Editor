@@ -266,7 +266,7 @@ class Editor:
                                     elif i == len(self.samples) + len(self.level.blocks):
                                         while str(self.level.next_free) in self.level.blocks:
                                             self.level.next_free += 1
-                                        self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 5, 5, 0.6, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0)
+                                        self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 5, 5, 0.6, 0.8, 1, 1, 0, 0, 0, 0, 0, 0, 0)
 
                     if (self.menuing or self.hovered or [0])[0] == None:
                         if imgui.begin_popup_context_window():
