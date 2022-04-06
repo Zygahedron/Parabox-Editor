@@ -3,7 +3,7 @@
 
 block_cipher = None
 
-version = "1.4"
+version = "1.4.1"
 
 
 a = Analysis(['sdl2_start.py'],
