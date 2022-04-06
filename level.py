@@ -1,4 +1,5 @@
-import colorsys, imgui
+import colorsys, time, imgui
+from math import cos, pi
 from re import S
 
 def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000):
@@ -23,6 +24,23 @@ epsilon_polyline = [
 ]
 def draw_epsilon(draw_list, x, y, width, height):
     draw_list.add_polyline([(x + u*width, y + v*height) for u, v in epsilon_polyline], 0xffffffff, False, min(width,height)/10)
+
+def half_cos(t):
+    t = t % (2*pi)
+    if t < pi:
+        return (1 + cos(t))/2
+    elif t < 1.5*pi:
+        return 0
+    else:
+        return 1
+
+def draw_shine(draw_list, x, y, width, height, rtl):
+    t = time.perf_counter() * 2.5
+    if (t + 0.5) % (2*pi) < pi + 0.5:
+        if rtl:
+            draw_list.add_rect_filled(x + half_cos(t)*width, y, x + half_cos(t + 0.5)*width, y + height, 0x7fffffff)
+        else:
+            draw_list.add_rect_filled(x + (1 - half_cos(t))*width, y, x + (1 - half_cos(t + 0.5))*width, y + height, 0x7fffffff)
 
 def color_button(obj, h, s, v, name):
     r, g, b = colorsys.hsv_to_rgb(h, s, v)
@@ -85,19 +103,28 @@ class Block:
             else:
                 pass # discard out of bounds children on save
         return block
-    
-    def draw(self, draw_list, x, y, width, height, level, depth):
-        draw_list.add_rect_filled(x, y, x+width, y+height, self.color())
-        if depth >= 0: # don't draw outer border on block windows
-            draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
 
+    def draw_children(self, draw_list, x, y, width, height, level, depth, fliph):
         if self.width > 0 and self.height > 0:
             inner_width = width / self.width
             inner_height = height / self.height
             if min(inner_width,inner_height) < 1 or depth > 10:
                 return
             for child in self.children:
-                child.draw(draw_list, x + child.x * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1)
+                if fliph:
+                    child.draw(draw_list, x + (self.width - 1 - child.x) * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1, True)
+                else:
+                    child.draw(draw_list, x + child.x * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1, False)
+    
+    def draw(self, draw_list, x, y, width, height, level, depth, fliph):
+        draw_list.add_rect_filled(x, y, x+width, y+height, self.color(1 if self.fillwithwalls else 0.5))
+        if depth >= 0: # don't draw outer border on block windows
+            draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
+
+        self.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
+
+        if self.fliph and depth >= 0:
+            draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
 
         if self.player:
             draw_eyes(draw_list, x, y, width, height, True)
@@ -107,8 +134,8 @@ class Block:
         if min(width,height) > 15 and depth >= 0:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
-    def color(self):
-        r, g, b = colorsys.hsv_to_rgb(self.hue, self.sat, self.val / (1 if self.fillwithwalls else 2))
+    def color(self, brightness=1):
+        r, g, b = colorsys.hsv_to_rgb(self.hue, self.sat, self.val * brightness)
         return imgui.get_color_u32_rgba(r, g, b, 1)
 
     def get_children(self, x, y):
@@ -308,11 +335,16 @@ class Ref:
         line = ["Ref", self.x, self.y, self.id, self.exitblock, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
-    def draw(self, draw_list, x, y, width, height, level, depth):
+    def draw(self, draw_list, x, y, width, height, level, depth, fliph):
+
         if self.id in level.blocks:
-            level.blocks[self.id].draw(draw_list, x, y, width, height, level, depth)
+            draw_list.add_rect_filled(x, y, x+width, y+height, level.blocks[self.id].color(1 if self.fillwithwalls else 0.5))
+            draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
+            level.blocks[self.id].draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
         else:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, "Invalid Reference!")
+            draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
+
         if self.infexit:
             draw_list.add_rect_filled(x, y, x + width, y + height, 0x3f000000)
             draw_list.add_rect(x, y, x + width, y + height, 0xff00ffff, thickness=min(width,height)/20)
@@ -323,6 +355,17 @@ class Ref:
             draw_list.add_rect(x, y, x + width, y + height, 0xff3f3f3f, thickness=min(width,height)/20)
             if not self.exitblock:
                 draw_list.add_rect_filled(x, y, x + width, y + height, 0x3fffffff)
+
+        if self.fliph:
+            draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
+
+        if self.player:
+            draw_eyes(draw_list, x, y, width, height, True)
+        elif self.possessable:
+            draw_eyes(draw_list, x, y, width, height, False)
+
+        if min(width,height) > 15 and depth >= 0:
+            draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
     def menu(self):
         if imgui.begin_menu("Change Reference Type"):
@@ -445,18 +488,13 @@ class Wall:
     def copy(self, held=False):
         return Wall(0, 0, self.player, self.possessable, self.playerorder)
     
-    def draw(self, draw_list, x, y, width, height, level, depth):
-        draw_list.add_rect_filled(x + width/10, y + height/10, x + width*9/10, y + height*9/10, self.color())
+    def draw(self, draw_list, x, y, width, height, level, depth, flip):
+        draw_list.add_rect_filled(x + width/10, y + height/10, x + width*9/10, y + height*9/10, self.parent.color() if self.parent else 0xff7f7f7f)
 
         if self.player:
             draw_eyes(draw_list, x, y, width, height, True)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
-
-    def color(self):
-        if not self.parent: return 0xff7f7f7f
-        r, g, b = colorsys.hsv_to_rgb(self.parent.hue, self.parent.sat, self.parent.val)
-        return imgui.get_color_u32_rgba(r, g, b, 1)
 
     def menu(self):
         if imgui.begin_menu("Change Wall Type"):
@@ -485,6 +523,9 @@ class Wall:
 
             imgui.end_menu()
 
+fast_travel_polyline = [
+    (0.4, 0.35), (0.5, 0.25), (0.6, 0.35)
+]
 class Floor:
     id = None
 
@@ -501,13 +542,16 @@ class Floor:
 
     def save(self, indent, saved_blocks, void=False):
         line = ["Floor", self.x, self.y, self.type]
+        if self.extra_data and self.extra_data != "":
+            line.append(self.extra_data.replace(" ","_"))
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
-    def draw(self, draw_list, x, y, width, height, level, depth):
-        draw_list.add_rect(x + width/10, y + height/10, x + width*9/10, y + height*9/10, 0x7fffffff, thickness=min(width,height)/20)
+    def draw(self, draw_list, x, y, width, height, level, depth, flip):
+        border = True
+        color = self.parent.color() if self.parent else 0x7fffffff
 
         if self.type == "PlayerButton":
-            draw_eyes(draw_list, x + width/10, y + height/10, width * 8/10, height * 8/10, True, 0x7fffffff)
+            draw_eyes(draw_list, x + width/10, y + height/10, width * 8/10, height * 8/10, True, color)
             other = self.parent.get_child(self.x, self.y) if self.parent else None
             if other and type(other) != Floor and other.player:
                 draw_list.add_rect(x, y, x+width, y+height, 0xffffffff, thickness=min(width,height)/20)
@@ -515,6 +559,16 @@ class Floor:
             other = self.parent.get_child(self.x, self.y) if self.parent else None
             if other and type(other) != Floor and type(other) != Wall and not other.player:
                 draw_list.add_rect(x, y, x+width, y+height, 0xffffffff, thickness=min(width,height)/20)
+        elif self.type == "FastTravel":
+            border = False
+            draw_list.add_polyline([(x + u*width, y + v*height) for u, v in fast_travel_polyline], color, closed=True, thickness=min(width,height)/7)
+            draw_list.add_polyline([(x + u*width, y + (1-v)*height) for u, v in fast_travel_polyline], color, closed=True, thickness=min(width,height)/7)
+        elif self.type == "Info":
+            draw_list.add_rect_filled(x + 0.45*width, y + 0.45*height, x + 0.55*width, y + 0.8*height, color)
+            draw_list.add_circle_filled(x + 0.5*width, y + 0.3*height, min(width,height)/15, color)
+
+        if border:
+            draw_list.add_rect(x + width/10, y + height/10, x + width*9/10, y + height*9/10, color, thickness=min(width,height)/20)
 
     def menu(self):
         if imgui.begin_menu("Change Floor Type"):

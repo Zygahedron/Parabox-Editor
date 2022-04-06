@@ -3,8 +3,10 @@
 
 block_cipher = None
 
+version = "1.4"
 
-a = Analysis(['main.py'],
+
+a = Analysis(['sdl2_start.py'],
              pathex=[],
              binaries=[],
              datas=[],
@@ -24,7 +26,7 @@ exe = EXE(pyz,
           a.scripts, 
           [],
           exclude_binaries=True,
-          name='main',
+          name=f'Zygan\'s Parabox Editor {version}',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
@@ -41,8 +43,8 @@ coll = COLLECT(exe,
                strip=False,
                upx=False,
                upx_exclude=[],
-               name='main')
+               name=f'Zygan\'s Parabox Editor {version}')
 app = BUNDLE(coll,
-             name='main.app',
+             name=f'Zygan\'s Parabox Editor {version}.app',
              icon=None,
              bundle_identifier=None)
