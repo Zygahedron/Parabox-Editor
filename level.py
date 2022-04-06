@@ -338,9 +338,10 @@ class Ref:
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
 
         if self.id in level.blocks:
-            draw_list.add_rect_filled(x, y, x+width, y+height, level.blocks[self.id].color(1 if self.fillwithwalls else 0.5))
+            orig = level.blocks[self.id]
+            draw_list.add_rect_filled(x, y, x+width, y+height, orig.color(1 if orig.fillwithwalls else 0.5))
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
-            level.blocks[self.id].draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
+            orig.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
         else:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, "Invalid Reference!")
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
