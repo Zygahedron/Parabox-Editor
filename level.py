@@ -577,6 +577,12 @@ class Floor:
                 self.type = "Button"
             if imgui.selectable("Player Button")[0]:
                 self.type = "PlayerButton"
+            if imgui.begin_menu("Other"):
+                if imgui.selectable("Fast Travel")[0]:
+                    self.type = "FastTravel"
+                if imgui.selectable("Info")[0]:
+                    self.type = "Info"
+                imgui.end_menu()
             if imgui.selectable("None")[0]:
                 self.parent.remove_child(self)
 
@@ -598,6 +604,12 @@ class Floor:
                 parent.place_child(px, py, Floor(px, py, "Button", ""))
             if imgui.selectable("Player Button")[0]:
                 parent.place_child(px, py, Floor(px, py, "PlayerButton", ""))
+            if imgui.begin_menu("Other"):
+                if imgui.selectable("Fast Travel")[0]:
+                    parent.place_child(px, py, Floor(px, py, "FastTravel", ""))
+                if imgui.selectable("Info")[0]:
+                    parent.place_child(px, py, Floor(px, py, "Info", ""))
+                imgui.end_menu()
             if imgui.selectable("None")[0]:
                 pass # already none
 
