@@ -90,12 +90,12 @@ class Block:
     def make_ref(self, new=True):
         return Ref(0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, "-1", self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
     
-    def save(self, indent, saved_blocks, void=False):
+    def save(self, indent, saved_blocks):
         if self in saved_blocks and not self.fillwithwalls:
             return self.make_ref(False).save(indent, saved_blocks)
         else:
             saved_blocks.append(self)
-        line = ["Block", self.x, self.y, self.id, self.width, self.height, f"{self.hue:1.3f}", f"{self.sat:1.3f}", f"{self.val:1.3f}", f"{self.zoomfactor:1.3f}", self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
+        line = ["Block", self.x, self.y, self.id, self.width, self.height, f"{self.hue:1.3g}", f"{self.sat:1.3g}", f"{self.val:1.3g}", f"{self.zoomfactor:1.3g}", self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         for child in self.children:
             if 0 <= child.x < self.width and 0 <= child.y < self.height:
@@ -331,7 +331,7 @@ class Ref:
     def copy(self, held=False): # return non-exit copy
         return Ref(0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
 
-    def save(self, indent, saved_blocks, void=False):
+    def save(self, indent, saved_blocks):
         line = ["Ref", self.x, self.y, self.id, self.exitblock, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
@@ -482,7 +482,7 @@ class Wall:
 
         self.parent = None
 
-    def save(self, indent, saved_blocks, void=False):
+    def save(self, indent, saved_blocks):
         line = ["Wall", self.x, self.y, self.player, self.possessable, self.playerorder]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
@@ -541,7 +541,7 @@ class Floor:
     def copy(self, held=False):
         return Floor(0, 0, self.type, self.extra_data)
 
-    def save(self, indent, saved_blocks, void=False):
+    def save(self, indent, saved_blocks):
         line = ["Floor", self.x, self.y, self.type]
         if self.extra_data and self.extra_data != "":
             line.append(self.extra_data.replace(" ","_"))
@@ -685,26 +685,22 @@ class Level:
             parent.place_child(ref.x, ref.y, self.blocks[id])
 
     def save(self):
+        str = self.metadata + "\n#"
         to_save = list(self.blocks.values())
         saved_blocks = []
-        str = self.metadata + "\n#"
-        # save blocks with no parents
-        for block in to_save:
-            if not block.parent:
-                str += block.save(0, saved_blocks)
-        for block in saved_blocks:
-            if block in to_save:
-                to_save.remove(block)
-        saved_blocks = []
-        # save blocks with recursive parents
+        seen = []
         while len(to_save):
-            str += to_save[0].save(0, saved_blocks, True)
+            current = to_save[0]
+            seen.append(current)
+            while current.parent and not (current.parent in seen):
+                current = current.parent
+                seen.append(current)
+            str += current.save(0, saved_blocks)
             for block in saved_blocks:
                 if block in to_save:
                     to_save.remove(block)
-            saved_blocks = []
 
-        return str.replace(".0 ", " ")
+        return str
 
     def edit_menu(self):
         changed, value = imgui.input_text_multiline("Metadata", self.metadata, 2048)
