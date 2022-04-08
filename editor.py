@@ -16,6 +16,8 @@ class Editor:
         self.samples = [
             Wall(0, 0, 0, 0, 0),
             Floor(0, 0, "Button", ""),
+            Block(0, 0, -1, 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
+            Block(0, 0, -1, 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
         ]
         
         self.levels_folder = ""

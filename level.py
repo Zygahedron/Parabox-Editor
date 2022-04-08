@@ -442,7 +442,7 @@ class Ref:
             changed, value = imgui.input_int("Infinite Enter", self.infenter)
             if changed:
                 self.infenter = value
-            changed, value = imgui.input_int("-> Layer", self.infenternum)
+            changed, value = imgui.input_int("-> Layer##", self.infenternum)
             if changed:
                 self.infenternum = value
             changed, value = imgui.input_text("-> From ID", self.infenterid, 64)
