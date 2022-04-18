@@ -1,6 +1,7 @@
 import colorsys, time, imgui
 from math import cos, pi
 from re import S
+from collections import OrderedDict
 
 def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000):
     size = min(width,height)
@@ -41,13 +42,6 @@ def draw_shine(draw_list, x, y, width, height, rtl):
             draw_list.add_rect_filled(x + half_cos(t)*width, y, x + half_cos(t + 0.5)*width, y + height, 0x7fffffff)
         else:
             draw_list.add_rect_filled(x + (1 - half_cos(t))*width, y, x + (1 - half_cos(t + 0.5))*width, y + height, 0x7fffffff)
-
-def color_button(obj, h, s, v, name):
-    r, g, b = colorsys.hsv_to_rgb(h, s, v)
-    if imgui.color_button(name, r, g, b, 1, width=20, height=20):
-        obj.hue = h
-        obj.sat = s
-        obj.val = v
 
 class Block:
     def __init__(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect):
@@ -117,7 +111,7 @@ class Block:
                     child.draw(draw_list, x + child.x * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1, False)
     
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
-        draw_list.add_rect_filled(x, y, x+width, y+height, self.color(1 if self.fillwithwalls else 0.5))
+        draw_list.add_rect_filled(x, y, x+width, y+height, self.color(level, 1 if self.fillwithwalls else 0.5))
         if depth >= 0: # don't draw outer border on block windows
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
 
@@ -134,8 +128,9 @@ class Block:
         if min(width,height) > 15 and depth >= 0:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
-    def color(self, brightness=1):
-        r, g, b = colorsys.hsv_to_rgb(self.hue, self.sat, self.val * brightness)
+    def color(self, level, brightness=1):
+        color = Palette.pals[level.metadata["custom_level_palette"]].get_color((self.hue, self.sat, self.val))
+        r, g, b = colorsys.hsv_to_rgb(color[0], color[1], color[2] * brightness)
         return imgui.get_color_u32_rgba(r, g, b, 1)
 
     def get_children(self, x, y):
@@ -172,7 +167,7 @@ class Block:
         child.x = x
         child.y = y
 
-    def menu(self):
+    def menu(self, level):
         if imgui.begin_menu("Change Block Type"):
             changed, value = imgui.input_int("Size", self.width)
             if changed:
@@ -210,47 +205,19 @@ class Block:
                     self.sat = 1.0
                     self.val = 0.7
 
-            imgui.separator()
-            imgui.separator()
-            if self.fillwithwalls:
-                if imgui.selectable("Convert to Enterable Room")[0]:
-                    self.fillwithwalls = 0
-                    self.width = 5
-                    self.height = 5
-                    self.hue = 0.6
-                    self.sat = 0.8
-                    self.val = 1.0
-            else:
-                if imgui.selectable("Convert to Solid Box")[0]:
-                    self.fillwithwalls = 1
-                    self.width = 1
-                    self.height = 1
-                    while len(self.children):
-                        self.remove_child(self.children[0])
-                    if self.possessable:
-                        self.hue = 0.9
-                        self.sat = 1.0
-                        self.val = 0.7
-                    else:
-                        self.hue = 0.1
-                        self.sat = 0.8
-                        self.val = 1.0
-
             imgui.end_menu()
 
         if imgui.begin_menu("Change Block Color"):
-            color_button(self, 0, 0, 0.8, "A")
-            imgui.same_line()
-            color_button(self, 0.6, 0.8, 1, "B")
-            imgui.same_line()
-            color_button(self, 0.4, 0.8, 1, "C")
-            imgui.same_line()
-            color_button(self, 0.1, 0.8, 1, "D")
-            imgui.same_line()
-            color_button(self, 0.9, 1, 0.7, "E")
-            imgui.same_line()
-            color_button(self, 0.55, 0.8, 1, "F")
             
+            for color in Palette.pals[0].colors:
+                h, s, v = Palette.pals[level.metadata["custom_level_palette"]].get_color(color)
+                r, g, b = colorsys.hsv_to_rgb(h, s, v)
+                if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
+                    self.hue = color[0]
+                    self.sat = color[1]
+                    self.val = color[2]
+                imgui.same_line()
+            imgui.new_line()
             imgui.separator()
 
             r, g, b = colorsys.hsv_to_rgb(self.hue, self.sat, self.val)
@@ -339,7 +306,7 @@ class Ref:
 
         if self.id in level.blocks:
             orig = level.blocks[self.id]
-            draw_list.add_rect_filled(x, y, x+width, y+height, orig.color(1 if orig.fillwithwalls else 0.5))
+            draw_list.add_rect_filled(x, y, x+width, y+height, orig.color(level, 1 if orig.fillwithwalls else 0.5))
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
             orig.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
         else:
@@ -368,7 +335,7 @@ class Ref:
         if min(width,height) > 15 and depth >= 0:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
-    def menu(self):
+    def menu(self, level):
         if imgui.begin_menu("Change Reference Type"):
             # if imgui.selectable("Make Exitable", enabled = self.exitblock == 0)[0]:
             #     self.exitblock = 1
@@ -490,14 +457,14 @@ class Wall:
         return Wall(0, 0, self.player, self.possessable, self.playerorder)
     
     def draw(self, draw_list, x, y, width, height, level, depth, flip):
-        draw_list.add_rect_filled(x + width/10, y + height/10, x + width*9/10, y + height*9/10, self.parent.color() if self.parent else 0xff7f7f7f)
+        draw_list.add_rect_filled(x + width/10, y + height/10, x + width*9/10, y + height*9/10, self.parent.color(level) if self.parent else 0xff7f7f7f)
 
         if self.player:
             draw_eyes(draw_list, x, y, width, height, True)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
-    def menu(self):
+    def menu(self, level):
         if imgui.begin_menu("Change Wall Type"):
             if imgui.selectable("Normal")[0]:
                 self.player = 0
@@ -549,7 +516,7 @@ class Floor:
 
     def draw(self, draw_list, x, y, width, height, level, depth, flip):
         border = True
-        color = self.parent.color() if self.parent else 0x7fffffff
+        color = self.parent.color(level) if self.parent else 0x7fffffff
 
         if self.type == "PlayerButton":
             draw_eyes(draw_list, x + width/10, y + height/10, width * 8/10, height * 8/10, True, color)
@@ -571,7 +538,7 @@ class Floor:
         if border:
             draw_list.add_rect(x + width/10, y + height/10, x + width*9/10, y + height*9/10, color, thickness=min(width,height)/20)
 
-    def menu(self):
+    def menu(self, level):
         if imgui.begin_menu("Change Floor Type"):
             if imgui.selectable("Button")[0]:
                 self.type = "Button"
@@ -615,14 +582,54 @@ class Floor:
 
             imgui.end_menu()
 
+class Palette:
+    def __init__(self, name, colors):
+        self.name = name
+        self.colors = colors
+
+    def get_color(self, color):
+        if self.colors == None: return color
+        if color[1] == 0: return self.colors[0]
+        if color[0] == 0.6: return self.colors[1]
+        if color[0] == 0.4: return self.colors[2]
+        if color[0] == 0.1: return self.colors[3]
+        if color[0] == 0.9: return self.colors[4]
+        if color[0] == 0.55: return self.colors[5]
+        return color
+
+Palette.pals = OrderedDict({
+    -1: Palette("None", None),
+    0: Palette("Default", [(0.0, 0.0, 0.8), (0.6, 0.8, 1.0), (0.4, 0.8, 1.0), (0.1, 0.8, 1.0), (0.9, 1.0, 0.7), (0.55, 0.8, 1.0),]),
+    1: Palette("Eat", [(0.05, 0.6, 1.1), (0.63, 0.6, 1.0), (0.32, 0.55, 1.0), (0.12, 0.6, 1.0), (0.85, 0.53, 0.8), (0.55, 0.8, 1.0),]),
+    2: Palette("Enter", [(0.6, 0.3, 0.8), (0.07, 0.7, 0.9), (0.42, 0.8, 0.85), (0.55, 0.8, 0.85), (0.93, 0.7, 0.75), (0.55, 0.8, 1.0),]),
+    3: Palette("Cycle", [(0.68, 0.2, 0.6), (0.25, 0.7, 0.6), (0.13, 0.7, 0.8), (0.03, 0.7, 0.8), (0.73, 0.7, 0.82), (0.55, 0.8, 1.0),]),
+    4: Palette("Empty", [(0.0, 0.08, 0.7), (0.6, 0.55, 0.8), (0.08, 0.75, 0.95), (0.21, 0.7, 0.8), (0.04, 0.8, 0.85), (0.55, 0.8, 1.0),]),
+    5: Palette("Monochrome", [(0.0, 0.0, 0.5), (0.0, 0.0, 0.25), (0.0, 0.0, 0.85), (0.0, 0.0, 0.5), (0.0, 0.0, 0.5), (0.0, 0.0, 0.5),]),
+    6: Palette("Reference", [(0.6, 0.6, 0.8), (0.55, 0.75, 0.7), (0.45, 0.75, 0.75), (0.13, 0.75, 0.85), (0.0, 0.7, 0.7), (0.55, 0.8, 1.0),]),
+    7: Palette("Clone", [(0.6, 0.3, 0.75), (0.25, 0.83, 0.82), (0.16, 1.0, 0.75), (0.6, 0.7, 0.9), (0.96, 0.8, 0.7), (0.46, 0.7, 0.8),]),
+    8: Palette("Flip", [(0.64, 0.6, 0.85), (0.68, 0.55, 0.9), (0.95, 0.6, 0.7), (0.45, 0.55, 0.8), (0.85, 0.6, 0.75), (0.58, 0.7, 0.8),]),
+    9: Palette("Possess", [(0.13, 0.15, 0.7), (0.92, 1.0, 0.7), (0.22, 0.9, 0.8), (0.5, 0.7, 0.8), (0.8, 0.5, 0.85), (0.09, 0.9, 0.9),]),
+    10: Palette("Camo", [(0.23, 0.6, 0.4), (0.33, 0.6, 0.6), (0.15, 0.8, 0.8), (0.1, 0.8, 0.8), (0.62, 0.7, 0.8), (0.46, 0.7, 0.8),]),
+})
+
 class Level:
     def __init__(self, name, data):
         self.name = name
         self.roots = []
         self.blocks = {}
         self.next_free = 0
+        [metadata, data] = data.split("\n#\n")
 
-        [self.metadata, data] = data.split("\n#\n")
+        metadata = [e.split(" ", 1) for e in metadata.split("\n")]
+        self.metadata = {e[0]: e[1] for e in metadata}
+        if not "attempt_order" in self.metadata: self.metadata["attempt_order"] = "push,enter,eat,possess"
+        self.metadata["attempt_order"] = self.metadata["attempt_order"].split(",")
+        self.metadata["shed"] = "shed" in self.metadata and self.metadata["shed"] == "1"
+        self.metadata["inner_push"] = "inner_push" in self.metadata and self.metadata["inner_push"] == "1"
+        if not "draw_style" in self.metadata: self.metadata["draw_style"] = "normal"
+        self.metadata["custom_level_music"] = -1 if "custom_level_music" not in self.metadata else int(self.metadata["custom_level_music"])
+        self.metadata["custom_level_palette"] = -1 if "custom_level_palette" not in self.metadata else int(self.metadata["custom_level_palette"])
+
         data = data.split("\n")
         indent = 0
         last_block = None
@@ -697,7 +704,21 @@ class Level:
             parent.place_child(ref.x, ref.y, self.blocks[id])
 
     def save(self):
-        str = self.metadata + "\n#"
+        str = "version 4\n"
+        if ",".join(self.metadata["attempt_order"]) != "enter,eat,push,possess":
+            str += "attempt_order " + ",".join(self.metadata["attempt_order"])
+        if self.metadata["shed"]:
+            str += "shed 1"
+        if self.metadata["inner_push"]:
+            str += "inner_push 1"
+        if self.metadata["draw_style"] != "default":
+            str += "draw_style " + self.metadata["draw_style"]
+        if self.metadata["custom_level_music"] != -1:
+            str += "custom_level_music " + str(self.metadata["custom_level_music"])
+        if self.metadata["custom_level_palette"] != -1:
+            str += "custom_level_palette " + str(self.metadata["custom_level_palette"])
+
+        str += "#\n"
         to_save = list(self.blocks.values())
         saved_blocks = []
         seen = []
@@ -715,6 +736,38 @@ class Level:
         return str
 
     def edit_menu(self):
-        changed, value = imgui.input_text_multiline("Metadata", self.metadata, 2048)
+        changed, value = imgui.combo("Palette", self.metadata["custom_level_palette"] + 1, [p.name for p in Palette.pals.values()])
         if changed:
-            self.metadata = value
+            self.metadata["custom_level_palette"] = value - 1 # off by 1 for None (-1)
+        changed, value = imgui.combo("Music", self.metadata["custom_level_music"] + 1, ["None", "Intro", "Enter", "Empty", "Eat", "Reference", "Center", "Clone", "Transfer", "Open", "Flip", "Cycle", "Swap", "Player", "Possess", "Wall", "Infinite Exit", "Infinite Enter", "Multi Infinite", "Reception", "Appendix", "Pause (buggy)", "Credits"])
+        if changed:
+            self.metadata["custom_level_music"] = value - 1 # off by 1 for None (-1)
+
+        style = 0
+        if self.metadata["draw_style"] == "tui": style = 1
+        if self.metadata["draw_style"] == "grid": style = 2
+        if self.metadata["draw_style"] == "oldstyle": style = 3
+        changed, value = imgui.combo("Draw Style", style, ["Default", "ASCII", "Grid", "Dev Graphics (Gallery)"])
+        if changed:
+            if value == 0: self.metadata["draw_style"] = "default"
+            if value == 1: self.metadata["draw_style"] = "tui"
+            if value == 2: self.metadata["draw_style"] = "grid"
+            if value == 3: self.metadata["draw_style"] = "oldstyle"
+
+        changed, value = imgui.checkbox("Shed / Extrude", self.metadata["shed"])
+        if changed:
+            self.metadata["shed"] = value
+        changed, value = imgui.checkbox("Inner Push", self.metadata["inner_push"])
+        if changed:
+            self.metadata["inner_push"] = value
+        if imgui.begin_menu("Attempt Order"):
+            order = self.metadata["attempt_order"]
+            for item in order:
+                if imgui.arrow_button(item + "-u", imgui.DIRECTION_UP):
+                    pass
+                imgui.same_line()
+                if imgui.arrow_button(item + "-d", imgui.DIRECTION_DOWN):
+                    pass
+                imgui.same_line()
+                imgui.text_ansi(item)
+            imgui.end_menu()

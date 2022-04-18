@@ -5,6 +5,7 @@ import glob
 import os
 import platform
 import traceback
+
 class Editor:
     def __init__(self):
         self.cursor_held = None
@@ -12,12 +13,13 @@ class Editor:
         self.hovered = None
         self.menuing = None
         self.clicked = None
+        self.new_size = 5
 
         self.samples = [
             Wall(0, 0, 0, 0, 0),
             Floor(0, 0, "Button", ""),
-            Block(0, 0, -1, 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
-            Block(0, 0, -1, 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
+            Block(0, 0, "-1", 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
+            Block(0, 0, "-1", 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
         ]
         
         self.levels_folder = ""
@@ -210,7 +212,7 @@ class Editor:
                                         imgui.separator()
                                     if type(block) == Floor:
                                         has_floor = True
-                                    block.menu()
+                                    block.menu(self.level)
                                 if not has_floor:
                                     if not first:
                                         imgui.separator()
@@ -294,7 +296,7 @@ class Editor:
                                         self.cursor_held.type = "PlayerButton"
                             elif i < len(self.samples) + len(self.level.blocks):
                                 block = sorted(self.level.blocks.items())[i - len(self.samples)][1]
-                                block.menu()
+                                block.menu(self.level)
                                 imgui.separator()
                                 if imgui.selectable("Duplicate Block")[0]:
                                     while str(self.level.next_free) in self.level.blocks:
@@ -310,12 +312,17 @@ class Editor:
                             elif i < len(self.samples) + len(self.level.blocks) + 1:
                                 while str(self.level.next_free) in self.level.blocks:
                                     self.level.next_free += 1
-                                if imgui.selectable("Add Enterable Block")[0]:
-                                    self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 5, 5, 0.6, 0.8, 1, 1, 0, 0, 0, 0, 0, 0, 0)
-                                if imgui.selectable("Add Player")[0]:
-                                    self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0)
-                                if imgui.selectable("Add Solid Box")[0]:
-                                    self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0)
+                                changed, value = imgui.input_int("Size", self.new_size)
+                                if changed and value > 0:
+                                    self.new_size = value
+                                for color in Palette.pals[0].colors:
+                                    h, s, v = Palette.pals[self.level.metadata["custom_level_palette"]].get_color(color)
+                                    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+                                    if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
+                                        self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), self.new_size, self.new_size, color[0], color[1], color[2], 1, 0, 0, 0, 0, 0, 0, 0)
+                                        self.menuing = None
+                                    imgui.same_line()
+                                imgui.new_line()
                             imgui.end_popup()
                         else:
                             self.menuing = None
