@@ -66,9 +66,8 @@ class Block:
         self.children = []
 
     def copy(self, held=False):
+        if self.fillwithwalls: return self.full_copy() # duplicate solid blocks
         if (held or self.parent): # if I already exist somewhere:
-            if self.fillwithwalls: # duplicate solid blocks
-                return self.full_copy()
             # return ref to self
             return self.make_ref()
         else: # if I don't exist anywhere:

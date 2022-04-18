@@ -294,6 +294,19 @@ class Editor:
                                     if imgui.selectable("Player Button")[0]:
                                         self.cursor_held = self.samples[i].copy()
                                         self.cursor_held.type = "PlayerButton"
+                                elif self.samples[i].player:
+                                    pass
+                                else:
+                                    for color in Palette.pals[0].colors:
+                                        h, s, v = Palette.pals[self.level.metadata["custom_level_palette"]].get_color(color)
+                                        r, g, b = colorsys.hsv_to_rgb(h, s, v)
+                                        if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
+                                            self.cursor_held = self.samples[i].copy()
+                                            self.cursor_held.hue, self.cursor_held.sat, self.cursor_held.val = color
+                                            self.clicked = self.hovered
+                                            self.menuing = None
+                                        imgui.same_line()
+                                    imgui.new_line()
                             elif i < len(self.samples) + len(self.level.blocks):
                                 block = sorted(self.level.blocks.items())[i - len(self.samples)][1]
                                 block.menu(self.level)
