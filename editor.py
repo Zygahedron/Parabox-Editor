@@ -309,7 +309,9 @@ class Editor:
                                     imgui.new_line()
                             elif i < len(self.samples) + len(self.level.blocks):
                                 block = sorted(self.level.blocks.items())[i - len(self.samples)][1]
-                                block.menu(self.level)
+                                pickup = block.palette_menu(self.level)
+                                if pickup:
+                                    self.cursor_held = pickup
                                 imgui.separator()
                                 if imgui.selectable("Duplicate Block")[0]:
                                     while str(self.level.next_free) in self.level.blocks:

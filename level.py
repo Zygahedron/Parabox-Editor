@@ -20,11 +20,11 @@ def draw_infinity(draw_list, x, y, width, height):
     draw_list.add_polyline([(x + u*width, y + v*height) for u, v in infinity_polyline], 0xffffffff, True, min(width,height)/10)
 
 epsilon_polyline = [
-    (0.7, 0.3), (0.4, 0.25), (0.3, 0.35), (0.4, 0.5), (0.6, 0.5),
-    (0.6, 0.5), (0.4, 0.5), (0.3, 0.65), (0.4, 0.75), (0.7, 0.7)
+    (0.7, 0.3), (0.4, 0.25), (0.3, 0.35), (0.4, 0.5), (0.6, 0.5)
 ]
 def draw_epsilon(draw_list, x, y, width, height):
     draw_list.add_polyline([(x + u*width, y + v*height) for u, v in epsilon_polyline], 0xffffffff, False, min(width,height)/10)
+    draw_list.add_polyline([(x + u*width, y + (1-v)*height) for u, v in epsilon_polyline], 0xffffffff, False, min(width,height)/10)
 
 def half_cos(t):
     t = t % (2*pi)
@@ -166,66 +166,7 @@ class Block:
         child.x = x
         child.y = y
 
-    def menu(self, level):
-        if imgui.begin_menu("Change Block Type"):
-            changed, value = imgui.input_int("Size", self.width)
-            if changed:
-                self.width = value
-                self.height = value
-
-            imgui.separator()
-            clicked, state = imgui.checkbox("Flip Horizontally", self.fliph)
-            if clicked:
-                self.fliph = int(state)
-            clicked, state = imgui.checkbox("Float in Space", self.floatinspace)
-            if clicked:
-                self.floatinspace = int(state)
-
-            imgui.separator()
-            if imgui.selectable("Normal")[0]:
-                self.player = 0
-                self.possessable = 0
-                if self.fillwithwalls:
-                    self.hue = 0.1
-                    self.sat = 0.8
-                    self.val = 1.0
-            if imgui.selectable("Player")[0]:
-                self.player = 1
-                self.possessable = 1
-                if self.fillwithwalls:
-                    self.hue = 0.9
-                    self.sat = 1.0
-                    self.val = 0.7
-            if imgui.selectable("Possessable")[0]:
-                self.player = 0
-                self.possessable = 1
-                if self.fillwithwalls:
-                    self.hue = 0.9
-                    self.sat = 1.0
-                    self.val = 0.7
-
-            imgui.end_menu()
-
-        if imgui.begin_menu("Change Block Color"):
-            
-            for color in Palette.pals[0].colors:
-                h, s, v = Palette.pals[level.metadata["custom_level_palette"]].get_color(color)
-                r, g, b = colorsys.hsv_to_rgb(h, s, v)
-                if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
-                    self.hue = color[0]
-                    self.sat = color[1]
-                    self.val = color[2]
-                imgui.same_line()
-            imgui.new_line()
-            imgui.separator()
-
-            r, g, b = colorsys.hsv_to_rgb(self.hue, self.sat, self.val)
-            changed, (r, g, b) = imgui.color_edit3("Color", r, g, b, imgui.COLOR_EDIT_HSV | imgui.COLOR_EDIT_FLOAT)
-            if changed:
-                self.hue, self.sat, self.val = colorsys.rgb_to_hsv(r, g, b)
-
-            imgui.end_menu()
-
+    def edit_menu(self, level):
         if imgui.begin_menu("Edit Block"):
             changed, value = imgui.input_text("ID", self.id, 64)
             if changed:
@@ -274,6 +215,78 @@ class Block:
 
             imgui.end_menu()
 
+    def palette_menu(self, level):
+        changed, value = imgui.input_int("Size", self.width)
+        if changed:
+            self.width = value
+            self.height = value
+
+        if imgui.begin_menu("Change Block Color"):
+            
+            for color in Palette.pals[0].colors:
+                h, s, v = Palette.pals[level.metadata["custom_level_palette"]].get_color(color)
+                r, g, b = colorsys.hsv_to_rgb(h, s, v)
+                if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
+                    self.hue = color[0]
+                    self.sat = color[1]
+                    self.val = color[2]
+                imgui.same_line()
+            imgui.new_line()
+            imgui.separator()
+
+            r, g, b = colorsys.hsv_to_rgb(self.hue, self.sat, self.val)
+            changed, (r, g, b) = imgui.color_edit3("Color", r, g, b, imgui.COLOR_EDIT_HSV | imgui.COLOR_EDIT_FLOAT)
+            if changed:
+                self.hue, self.sat, self.val = colorsys.rgb_to_hsv(r, g, b)
+
+            imgui.end_menu()
+        
+        self.edit_menu(level)
+
+        imgui.separator()
+
+        if imgui.selectable("Create Infinite Exit")[0]:
+            return Ref(0, 0, self.id, 1, 1, 0, 0, 0, "0", 0, 0, 0, 0, 0, 0)
+        if imgui.selectable("Create Infinite Enter")[0]:
+            while str(level.next_free) in level.blocks:
+                level.next_free += 1
+            level.blocks[str(level.next_free)] = Block(0, 0, str(level.next_free), 5, 5, self.hue, self.sat, self.val, 1, 0, 0, 0, 0, 0, 0, 0)
+            return Ref(0, 0, str(level.next_free), 1, 0, 0, 1, 0, self.id, 0, 0, 0, 0, 0, 0)
+
+    def menu(self, level):
+        imgui.separator()
+        clicked, state = imgui.checkbox("Flip Horizontally", self.fliph)
+        if clicked:
+            self.fliph = int(state)
+        clicked, state = imgui.checkbox("Float in Space", self.floatinspace)
+        if clicked:
+            self.floatinspace = int(state)
+
+        imgui.separator()
+        if imgui.selectable("Normal")[0]:
+            self.player = 0
+            self.possessable = 0
+            if self.fillwithwalls:
+                self.hue = 0.1
+                self.sat = 0.8
+                self.val = 1.0
+        if imgui.selectable("Player")[0]:
+            self.player = 1
+            self.possessable = 1
+            if self.fillwithwalls:
+                self.hue = 0.9
+                self.sat = 1.0
+                self.val = 0.7
+        if imgui.selectable("Possessable")[0]:
+            self.player = 0
+            self.possessable = 1
+            if self.fillwithwalls:
+                self.hue = 0.9
+                self.sat = 1.0
+                self.val = 0.7
+        
+        self.edit_menu(level)
+
 class Ref:
     def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect):
         self.x = int(x)
@@ -315,10 +328,21 @@ class Ref:
         if self.infexit:
             draw_list.add_rect_filled(x, y, x + width, y + height, 0x3f000000)
             draw_list.add_rect(x, y, x + width, y + height, 0xff00ffff, thickness=min(width,height)/20)
-            draw_infinity(draw_list, x, y, width, height)
+            if self.infexitnum == 0:
+                draw_infinity(draw_list, x, y, width, height)
+            else:
+                w = width / (self.infexitnum + 1) * 1.8
+                h = height / (self.infexitnum + 1)
+                h2 = h * 1.8
+                for i in range(self.infexitnum + 1):
+                    draw_infinity(draw_list, x + width/2 - w/2, y + (h - h2)/2 + i*h, w, h2)
         else:
             if self.infenter:
-                draw_epsilon(draw_list, x, y, width, height)
+                w = width / (self.infenternum + 1) * 1.3
+                h = height / (self.infenternum + 1)
+                h2 = h * 1.3
+                for i in range(self.infenternum + 1):
+                    draw_epsilon(draw_list, x + width/2 - w/2, y + (h - h2)/2 + i*h, w, h2)
             draw_list.add_rect(x, y, x + width, y + height, 0xff3f3f3f, thickness=min(width,height)/20)
             if not self.exitblock:
                 draw_list.add_rect_filled(x, y, x + width, y + height, 0x3fffffff)
@@ -753,20 +777,23 @@ class Level:
             if value == 2: self.metadata["draw_style"] = "grid"
             if value == 3: self.metadata["draw_style"] = "oldstyle"
 
-        changed, value = imgui.checkbox("Shed / Extrude", self.metadata["shed"])
+        imgui.separator()
+
+        changed, value = imgui.checkbox("Extrude / Shed", self.metadata["shed"])
         if changed:
             self.metadata["shed"] = value
         changed, value = imgui.checkbox("Inner Push", self.metadata["inner_push"])
         if changed:
             self.metadata["inner_push"] = value
-        if imgui.begin_menu("Attempt Order"):
+        if imgui.begin_menu("Priority / Attempt Order"):
             order = self.metadata["attempt_order"]
             for item in order:
-                if imgui.arrow_button(item + "-u", imgui.DIRECTION_UP):
-                    pass
+                i = order.index(item)
+                if imgui.arrow_button(item + "-u", imgui.DIRECTION_UP) and i != 0:
+                    order[i], order[i-1] = order[i-1], order[i]
                 imgui.same_line()
-                if imgui.arrow_button(item + "-d", imgui.DIRECTION_DOWN):
-                    pass
+                if imgui.arrow_button(item + "-d", imgui.DIRECTION_DOWN) and i != len(order):
+                    order[i], order[i+1] = order[i+1], order[i]
                 imgui.same_line()
                 imgui.text_ansi(item)
             imgui.end_menu()
