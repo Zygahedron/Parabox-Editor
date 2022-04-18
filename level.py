@@ -743,21 +743,21 @@ class Level:
             parent.place_child(ref.x, ref.y, self.blocks[id])
 
     def save(self):
-        str = "version 4\n"
-        if ",".join(self.metadata["attempt_order"]) != "enter,eat,push,possess":
-            str += "attempt_order " + ",".join(self.metadata["attempt_order"])
+        data = "version 4\n"
+        if ",".join(self.metadata["attempt_order"]) != "push,enter,eat,possess":
+            data += "attempt_order " + ",".join(self.metadata["attempt_order"]) + "\n"
         if self.metadata["shed"]:
-            str += "shed 1"
+            data += "shed 1\n"
         if self.metadata["inner_push"]:
-            str += "inner_push 1"
-        if self.metadata["draw_style"] != "default":
-            str += "draw_style " + self.metadata["draw_style"]
+            data += "inner_push 1\n"
+        if self.metadata["draw_style"] != "normal":
+            data += "draw_style " + self.metadata["draw_style"] + "\n"
         if self.metadata["custom_level_music"] != -1:
-            str += "custom_level_music " + str(self.metadata["custom_level_music"])
+            data += "custom_level_music " + str(self.metadata["custom_level_music"]) + "\n"
         if self.metadata["custom_level_palette"] != -1:
-            str += "custom_level_palette " + str(self.metadata["custom_level_palette"])
+            data += "custom_level_palette " + str(self.metadata["custom_level_palette"]) + "\n"
 
-        str += "#\n"
+        data += "#\n"
         to_save = list(self.blocks.values())
         saved_blocks = []
         seen = []
@@ -767,12 +767,12 @@ class Level:
             while current.parent and not (current.parent in seen):
                 current = current.parent
                 seen.append(current)
-            str += current.save(0, saved_blocks)
+            data += current.save(0, saved_blocks)
             for block in saved_blocks:
                 if block in to_save:
                     to_save.remove(block)
 
-        return str
+        return data
 
     def edit_menu(self):
         changed, value = imgui.combo("Palette", self.metadata["custom_level_palette"] + 1, [p.name for p in Palette.pals.values()])
@@ -786,9 +786,9 @@ class Level:
         if self.metadata["draw_style"] == "tui": style = 1
         if self.metadata["draw_style"] == "grid": style = 2
         if self.metadata["draw_style"] == "oldstyle": style = 3
-        changed, value = imgui.combo("Draw Style", style, ["Default", "ASCII", "Grid", "Dev Graphics (Gallery)"])
+        changed, value = imgui.combo("Draw Style", style, ["Normal", "ASCII", "Grid", "Dev Graphics (Gallery)"])
         if changed:
-            if value == 0: self.metadata["draw_style"] = "default"
+            if value == 0: self.metadata["draw_style"] = "normal"
             if value == 1: self.metadata["draw_style"] = "tui"
             if value == 2: self.metadata["draw_style"] = "grid"
             if value == 3: self.metadata["draw_style"] = "oldstyle"
