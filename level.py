@@ -480,7 +480,23 @@ class Wall:
         return Wall(0, 0, self.player, self.possessable, self.playerorder)
     
     def draw(self, draw_list, x, y, width, height, level, depth, flip):
-        draw_list.add_rect_filled(x + width/10, y + height/10, x + width*9/10, y + height*9/10, self.parent.color(level) if self.parent else 0xff7f7f7f)
+        left = not self.parent or self.x != 0 and type(self.parent.get_child(self.x - 1, self.y)) != Wall
+        right = not self.parent or self.x != self.parent.width-1 and type(self.parent.get_child(self.x + 1, self.y)) != Wall
+        top = not self.parent or self.y != self.parent.height-1 and type(self.parent.get_child(self.x, self.y + 1)) != Wall
+        bottom = not self.parent or self.y != 0 and type(self.parent.get_child(self.x, self.y - 1)) != Wall
+        topleft = 1 if top and left else 0
+        topright = 2 if top and right else 0
+        botleft = 4 if bottom and left else 0
+        botright = 8 if bottom and right else 0
+        draw_list.add_rect_filled(x, y, x + width, y + height, self.parent.color(level) if self.parent else 0xff7f7f7f, min(width, height)/4, topleft | topright | botleft | botright)
+        if left:
+            draw_list.add_rect_filled(x, y, x + width/5, y + height, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, topleft | botleft)
+        if right:
+            draw_list.add_rect_filled(x + width*4/5, y, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, topright | botright)
+        if top:
+            draw_list.add_rect_filled(x, y, x + width, y + height/5, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, topleft | topright)
+        if bottom:
+            draw_list.add_rect_filled(x, y + height*4/5, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, botleft | botright)
 
         if self.player:
             draw_eyes(draw_list, x, y, width, height, True)
