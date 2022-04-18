@@ -702,10 +702,11 @@ class Level:
                 else:
                     self.roots.append(block)
                 last_block = block
-                if not id in self.blocks:
-                    self.blocks[id] = block
-                else:
-                    print("duplicate block with id " + id)
+                if fillwithwalls != "1":
+                    if not id in self.blocks:
+                        self.blocks[id] = block
+                    else:
+                        print("duplicate block with id " + id)
             elif block_type == "Ref":
                 [x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
                 ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect)
