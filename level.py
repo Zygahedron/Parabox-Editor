@@ -809,7 +809,7 @@ class Level:
                 if imgui.arrow_button(item + "-u", imgui.DIRECTION_UP) and i != 0:
                     order[i], order[i-1] = order[i-1], order[i]
                 imgui.same_line()
-                if imgui.arrow_button(item + "-d", imgui.DIRECTION_DOWN) and i != len(order):
+                if imgui.arrow_button(item + "-d", imgui.DIRECTION_DOWN) and i != len(order) - 1:
                     order[i], order[i+1] = order[i+1], order[i]
                 imgui.same_line()
                 imgui.text_ansi(item)
