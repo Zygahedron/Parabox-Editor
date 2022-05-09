@@ -28,7 +28,7 @@ class Editor:
         elif platform.system() == "Darwin": # Mac OS X
             self.levels_folder = "~/Library/Application Support/com.PatrickTraynor.PatricksParabox/custom_levels"
         elif platform.system() == "Linux":
-            self.levels_folder = "~/.config/unity3d/Patrick Traynor/Patrick's Parabox"
+            self.levels_folder = "~/.config/unity3d/Patrick Traynor/Patrick's Parabox/custom_levels"
 
         self.levels_search = ""
         self.files = None
