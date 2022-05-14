@@ -246,6 +246,8 @@ class Block:
 
         if imgui.selectable("Create Infinite Exit")[0]:
             return Ref(0, 0, self.id, 1, 1, 0, 0, 0, "0", 0, 0, 0, 0, 0, 0)
+        if imgui.selectable("Create Reference")[0]:
+            return Ref(0, 0, self.id, 0, 0, 0, 0, 0, "0", 0, 0, 0, 0, 0, 0)
         if imgui.selectable("Create Infinite Enter")[0]:
             while str(level.next_free) in level.blocks:
                 level.next_free += 1
