@@ -5,7 +5,7 @@
 - If the main SDL2 launch doesn't work, try the GLFW one instead
 - If they both don't work, send me the log file from appdata/roaming
 # To build:
-- Install [https://pynsist.readthedocs.io/en/latest/index.html](Pynsist)
+- Install [Pynsist](https://pynsist.readthedocs.io/en/latest/index.html)
 - Run `pynsist build.ini`
 - Output goes in `build/nsis/Zygans_Parabox_Editor_`(version)`.exe`
 
