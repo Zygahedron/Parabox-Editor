@@ -484,24 +484,33 @@ class Wall:
         right = not self.parent or self.x != self.parent.width-1 and type(self.parent.get_child(self.x + 1, self.y)) != Wall
         top = not self.parent or self.y != self.parent.height-1 and type(self.parent.get_child(self.x, self.y + 1)) != Wall
         bottom = not self.parent or self.y != 0 and type(self.parent.get_child(self.x, self.y - 1)) != Wall
-        topleft = 1 if top and left else 0
-        topright = 2 if top and right else 0
-        botleft = 4 if bottom and left else 0
-        botright = 8 if bottom and right else 0
-        draw_list.add_rect_filled(x, y, x + width, y + height, self.parent.color(level) if self.parent else 0xff7f7f7f, min(width, height)/4, topleft | topright | botleft | botright)
+        topleft = not self.parent or ((self.x != 0 and self.y != self.parent.height-1) and type(self.parent.get_child(self.x - 1, self.y + 1)) != Wall)
+        topright = not self.parent or ((self.x != self.parent.width-1 and self.y != self.parent.height-1) and type(self.parent.get_child(self.x + 1, self.y + 1)) != Wall)
+        bottomleft = not self.parent or ((self.y != self.parent.height-1 and self.y != 0) and type(self.parent.get_child(self.x - 1, self.y - 1)) != Wall)
+        bottomright = not self.parent or ((self.y != 0 and self.y != 0) and type(self.parent.get_child(self.x + 1, self.y - 1)) != Wall)
+        top_and_left = 1 if top and left else 0
+        top_and_right = 2 if top and right else 0
+        bottom_and_left = 4 if bottom and left else 0
+        bottom_and_right = 8 if bottom and right else 0
+        draw_list.add_rect_filled(x, y, x + width, y + height, self.parent.color(level) if self.parent else 0xff7f7f7f, min(width, height)/4, top_and_left | top_and_right | bottom_and_left | bottom_and_right)
         if left:
-            draw_list.add_rect_filled(x, y, x + width/5, y + height, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, topleft | botleft)
+            draw_list.add_rect_filled(x, y, x + width/5, y + height, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, top_and_left | bottom_and_left)
         if right:
-            draw_list.add_rect_filled(x + width*4/5, y, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, topright | botright)
+            draw_list.add_rect_filled(x + width*4/5, y, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, top_and_right | bottom_and_right)
         if top:
-            draw_list.add_rect_filled(x, y, x + width, y + height/5, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, topleft | topright)
+            draw_list.add_rect_filled(x, y, x + width, y + height/5, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, top_and_left | top_and_right)
         if bottom:
-            draw_list.add_rect_filled(x, y + height*4/5, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, botleft | botright)
-
-        if self.player:
-            draw_eyes(draw_list, x, y, width, height, True)
-        elif self.possessable:
-            draw_eyes(draw_list, x, y, width, height, False)
+            draw_list.add_rect_filled(x, y + height*4/5, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, bottom_and_left | bottom_and_right)
+        if topleft and not (top or left):
+            draw_list.add_rect_filled(x, y, x + width/5, y + height/5, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, top_and_left)
+        if topright and not (top or right):
+            draw_list.add_rect_filled(x + width*4/5, y, x + width, y + height/5, self.parent.color(level, 1.25) if self.parent else 0xff3f3f3f, min(width, height)/4, top_and_right)
+        if bottomleft and not (bottom or left):
+            draw_list.add_rect_filled(x, y + height*4/5, x + width/5, y + height, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, bottom_and_left)
+        if bottomright and not (bottom or right):
+            draw_list.add_rect_filled(x + width*4/5, y + height*4/5, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, bottom_and_right)
+        if self.player or self.possessable:
+            draw_eyes(draw_list, x, y, width, height, self.player)
 
     def menu(self, level):
         if imgui.begin_menu("Change Wall Type"):
