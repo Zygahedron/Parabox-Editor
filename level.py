@@ -47,7 +47,7 @@ class Block:
     def __init__(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect):
         self.x = int(x)
         self.y = int(y)
-        self.id = id
+        self.id = int(id)
         self.width = int(width)
         self.height = int(height)
         self.hue = float(hue)
@@ -168,10 +168,9 @@ class Block:
 
     def edit_menu(self, level):
         if imgui.begin_menu("Edit Block"):
-            changed, value = imgui.input_text("ID", self.id, 64)
+            changed, value = imgui.input_int("ID", self.id)
             if changed:
                 self.id = value
-
             changed, value = imgui.input_int("Width", self.width)
             if changed:
                 self.width = value
@@ -291,7 +290,7 @@ class Ref:
     def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect):
         self.x = int(x)
         self.y = int(y)
-        self.id = id
+        self.id = int(id)
         self.exitblock = int(exitblock)
         self.infexit = int(infexit)
         self.infexitnum = int(infexitnum)
@@ -316,8 +315,8 @@ class Ref:
 
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
 
-        if self.id in level.blocks:
-            orig = level.blocks[self.id]
+        if str(self.id) in level.blocks:
+            orig = level.blocks[str(self.id)]
             draw_list.add_rect_filled(x, y, x+width, y+height, orig.color(level, 1 if orig.fillwithwalls else 0.5))
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
             orig.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
@@ -416,7 +415,7 @@ class Ref:
             imgui.end_menu()
 
         if imgui.begin_menu("Edit Reference"):
-            changed, value = imgui.input_text("ID", self.id, 64)
+            changed, value = imgui.input_int("ID", self.id)
             if changed:
                 self.id = value
 
@@ -469,7 +468,6 @@ class Wall:
         self.player = int(player)
         self.possessable = int(possessable)
         self.playerorder = int(playerorder)
-
         self.parent = None
 
     def save(self, indent, saved_blocks):
@@ -484,14 +482,17 @@ class Wall:
         right = not self.parent or self.x != self.parent.width-1 and type(self.parent.get_child(self.x + 1, self.y)) != Wall
         top = not self.parent or self.y != self.parent.height-1 and type(self.parent.get_child(self.x, self.y + 1)) != Wall
         bottom = not self.parent or self.y != 0 and type(self.parent.get_child(self.x, self.y - 1)) != Wall
-        topleft = not self.parent or ((self.x != 0 and self.y != self.parent.height-1) and type(self.parent.get_child(self.x - 1, self.y + 1)) != Wall)
+        topleft = not self.parent or ((self.x != 0 and  self.y != self.parent.height-1) and type(self.parent.get_child(self.x - 1, self.y + 1)) != Wall)
         topright = not self.parent or ((self.x != self.parent.width-1 and self.y != self.parent.height-1) and type(self.parent.get_child(self.x + 1, self.y + 1)) != Wall)
-        bottomleft = not self.parent or ((self.y != self.parent.height-1 and self.y != 0) and type(self.parent.get_child(self.x - 1, self.y - 1)) != Wall)
-        bottomright = not self.parent or ((self.y != 0 and self.y != 0) and type(self.parent.get_child(self.x + 1, self.y - 1)) != Wall)
+        bottomleft = not self.parent or ((self.x != 0 and self.y != 0) and type(self.parent.get_child(self.x - 1, self.y - 1)) != Wall)
+        bottomright = not self.parent or ((self.x != self.parent.width-1 and self.y != 0) and type(self.parent.get_child(self.x + 1, self.y - 1)) != Wall)
         top_and_left = 1 if top and left else 0
         top_and_right = 2 if top and right else 0
         bottom_and_left = 4 if bottom and left else 0
         bottom_and_right = 8 if bottom and right else 0
+        if self.parent is not None and flip:
+            x += width
+            width *= -1
         draw_list.add_rect_filled(x, y, x + width, y + height, self.parent.color(level) if self.parent else 0xff7f7f7f, min(width, height)/4, top_and_left | top_and_right | bottom_and_left | bottom_and_right)
         if left:
             draw_list.add_rect_filled(x, y, x + width/5, y + height, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, top_and_left | bottom_and_left)
