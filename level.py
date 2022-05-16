@@ -298,7 +298,7 @@ class Ref:
         self.infexitnum = int(infexitnum)
         self.infenter = int(infenter)
         self.infenternum = int(infenternum)
-        self.infenterid = infenterid
+        self.infenterid = int(infenterid)
         self.player = int(player)
         self.possessable = int(possessable)
         self.playerorder = int(playerorder)
@@ -378,13 +378,13 @@ class Ref:
                 self.infexitnum = 0
                 self.infenter = 0
                 self.infenternum = 0
-                self.infenterid = "-1"
+                self.infenterid = -1
             if imgui.selectable("Infinite Exit")[0]:
                 self.infexit = 1
                 self.infexitnum = 0
                 self.infenter = 0
                 self.infenternum = 0
-                self.infenterid = "-1"
+                self.infenterid = -1
             if self.infexit:
                 changed, value = imgui.input_int("-> Layer", self.infexitnum)
                 if changed:
@@ -399,7 +399,7 @@ class Ref:
                 changed, value = imgui.input_int("-> Layer", self.infenternum)
                 if changed:
                     self.infenternum = value
-                changed, value = imgui.input_text("-> From ID", self.infenterid, 64)
+                changed, value = imgui.input_int("-> From ID", self.infenterid)
                 if changed:
                     self.infenterid = value
             imgui.separator()
@@ -436,7 +436,7 @@ class Ref:
             changed, value = imgui.input_int("-> Layer##", self.infenternum)
             if changed:
                 self.infenternum = value
-            changed, value = imgui.input_text("-> From ID", self.infenterid, 64)
+            changed, value = imgui.input_int("-> From ID", self.infenterid)
             if changed:
                 self.infenterid = value
 
