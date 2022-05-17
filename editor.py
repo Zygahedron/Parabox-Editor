@@ -5,6 +5,7 @@ import glob
 import os
 import platform
 import traceback
+import colorsys
 
 class Editor:
     def __init__(self):
@@ -35,7 +36,7 @@ class Editor:
         self.file_choice = -1
         self.level_name = "untitled"
         self.level = None
-
+        self.code_check = []
         self.error = None
 
         imgui.get_io().ini_file_name = b""
@@ -85,6 +86,49 @@ class Editor:
                     save_data = self.level.save()
                     with open(self.level_name + ".txt", "w" if os.path.exists(self.level_name + ".txt") else "x") as file:
                         file.write(save_data)
+        
+        if keyboard.up.pressed:
+            self.code_check.append('up')
+        if keyboard.down.pressed:
+            self.code_check.append('down')
+        if keyboard.left.pressed:
+            self.code_check.append('left')
+        if keyboard.right.pressed:
+            self.code_check.append('right')
+        if keyboard.b.pressed:
+            self.code_check.append('b')
+        if keyboard.a.pressed:
+            self.code_check.append('a')
+        if keyboard.enter.pressed:
+            self.code_check.append('enter')
+        self.code_check = self.code_check[:11]
+        if all([a==b for a, b in zip(self.code_check,['up','up','down','down','left','right','left','right','b','a','enter'])]) and len(self.code_check) == 11:
+            imgui.open_popup("secret.gui")
+            self.code_check = []
+        if imgui.begin_popup("secret.gui"):
+            imgui.push_style_color(imgui.COLOR_TEXT, .702, 0, .42)
+            imgui.text("""+------------------------+
+|                        |
+|                        |
+|                        |
+|     #            #     |
+|    ###          ###    |
+|   ## ##        ## ##   |
+|                        |
+|                        |
+|       ##  ##  ##       |
+|       ##########       |
+|        ###  ###        |
+|                        |
+|                        |
++------------------------+
+
+""")
+            imgui.pop_style_color(1)
+            imgui.push_style_color(imgui.COLOR_TEXT, *colorsys.hsv_to_rgb((time.time()/5)%1,1,1))
+            imgui.text('Editor made with love by Zygan#0404')
+            imgui.pop_style_color(1)
+            imgui.end_popup()
 
         if menu_choice == "file.open":
             imgui.open_popup("file.open")
@@ -109,8 +153,8 @@ class Editor:
                     imgui.close_current_popup()
 
             except Exception as e:
-                imgui.text_ansi("Failed to load levels folder...")
-                imgui.text_ansi(str(e))
+                imgui.text("Failed to load levels folder...")
+                imgui.text(str(e))
                 self.error = traceback.format_exc()
             imgui.end_popup()
         

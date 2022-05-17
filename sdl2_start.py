@@ -21,13 +21,27 @@ class Key:
 class Keyboard:
     def __init__(self):
         self.n = Key()
+        self.b = Key()
+        self.a = Key()
         self.o = Key()
         self.s = Key()
+        self.up = Key()
+        self.left = Key()
+        self.down = Key()
+        self.right = Key()
+        self.enter = Key()
 
         self.map = {
+            SDL_SCANCODE_A: self.a,
+            SDL_SCANCODE_B: self.b,
             SDL_SCANCODE_N: self.n,
             SDL_SCANCODE_O: self.o,
             SDL_SCANCODE_S: self.s,
+            SDL_SCANCODE_UP: self.up,
+            SDL_SCANCODE_DOWN: self.down,
+            SDL_SCANCODE_LEFT: self.left,
+            SDL_SCANCODE_RIGHT: self.right,
+            SDL_SCANCODE_KP_ENTER: self.enter
         }
 keyboard = Keyboard()
 

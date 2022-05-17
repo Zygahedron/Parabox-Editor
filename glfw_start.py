@@ -30,13 +30,27 @@ class Key:
 class Keyboard:
     def __init__(self):
         self.n = Key()
+        self.b = Key()
+        self.a = Key()
         self.o = Key()
         self.s = Key()
-
+        self.up = Key()
+        self.left = Key()
+        self.down = Key()
+        self.right = Key()
+        self.enter = Key()
+        
         self.map = {
             glfw.KEY_N: self.n,
             glfw.KEY_O: self.o,
             glfw.KEY_S: self.s,
+            glfw.KEY_B: self.b,
+            glfw.KEY_A: self.a,
+            glfw.KEY_UP: self.up,
+            glfw.KEY_LEFT: self.left,
+            glfw.KEY_DOWN: self.down,
+            glfw.KEY_RIGHT: self.right,
+            glfw.KEY_ENTER: self.enter
         }
 keyboard = Keyboard()
 
