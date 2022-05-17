@@ -1,16 +1,22 @@
 import colorsys, time, imgui
-from math import cos, pi
+from math import cos, pi, floor
 from re import S
+from random import random
 from collections import OrderedDict
 
-def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000):
+def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000, blinkoffset=0):
     size = min(width,height)
     if solid:
-        draw_list.add_circle_filled(x + width/4, y + height/2, size/10, color)
-        draw_list.add_circle_filled(x + width*3/4, y + height/2, size/10, color)
+        #patrick told me (balt) the code behind blinking in dms, thanks to him <3
+        if floor(((time.time())*7.12)+blinkoffset)%26 == 0:
+            draw_list.add_polyline([(x + (1*width)/8, y + (7*height/16)), (x + (3*width)/8, y + (7*height/16))], color, thickness=size/15)
+            draw_list.add_polyline([(x + (5*width)/8, y + (7*height/16)), (x + (7*width)/8, y + (7*height/16))], color, thickness=size/15)
+        else:
+            draw_list.add_circle_filled(x + width/4, y + (7*height/16), size/10, color, num_segments=size//4)
+            draw_list.add_circle_filled(x + width*3/4, y + (7*height/16), size/10, color, num_segments=size//4)
     else:
-        draw_list.add_circle(x + width/4, y + height/2, size/10, color, thickness=size/20)
-        draw_list.add_circle(x + width*3/4, y + height/2, size/10, color, thickness=size/20)
+        draw_list.add_circle(x + width/4, y + (7*height/16), size/10, color, num_segments=size//4, thickness=size/20)
+        draw_list.add_circle(x + width*3/4, y + (7*height/16), size/10, color, num_segments=size//4, thickness=size/20)
 
 infinity_polyline = [
     (0.65, 0.65), (0.8, 0.65), (0.85, 0.5), (0.8, 0.35), (0.65, 0.35),
@@ -61,7 +67,7 @@ class Block:
         self.fliph = int(fliph)
         self.floatinspace = int(floatinspace)
         self.specialeffect = int(specialeffect)
-
+        self.blinkoffset = random()*26
         self.parent = None
         self.children = []
 
@@ -120,7 +126,7 @@ class Block:
             draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
 
         if self.player:
-            draw_eyes(draw_list, x, y, width, height, True)
+            draw_eyes(draw_list, x, y, width, height, True, blinkoffset=self.blinkoffset)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
