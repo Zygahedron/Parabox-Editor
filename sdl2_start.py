@@ -41,7 +41,7 @@ class Keyboard:
             SDL_SCANCODE_DOWN: self.down,
             SDL_SCANCODE_LEFT: self.left,
             SDL_SCANCODE_RIGHT: self.right,
-            SDL_SCANCODE_KP_ENTER: self.enter
+            SDL_SCANCODE_RETURN: self.enter
         }
 keyboard = Keyboard()
 
