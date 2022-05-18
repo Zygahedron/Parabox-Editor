@@ -86,7 +86,6 @@ class Editor:
                     save_data = self.level.save()
                     with open(self.level_name + ".txt", "w" if os.path.exists(self.level_name + ".txt") else "x") as file:
                         file.write(save_data)
-        
         if keyboard.up.pressed:
             self.code_check.append('up')
         if keyboard.down.pressed:
@@ -101,10 +100,12 @@ class Editor:
             self.code_check.append('a')
         if keyboard.enter.pressed:
             self.code_check.append('enter')
-        self.code_check = self.code_check[:11]
-        if all([a==b for a, b in zip(self.code_check,['up','up','down','down','left','right','left','right','b','a','enter'])]) and len(self.code_check) == 11:
-            imgui.open_popup("secret.gui")
-            self.code_check = []
+        if len(self.code_check) == 11:
+            if all([a==b for a, b in zip(self.code_check,['up','up','down','down','left','right','left','right','b','a','enter'])]):
+                imgui.open_popup("secret.gui")
+                self.code_check = []
+            else:
+                self.code_check = self.code_check[1:]
         if imgui.begin_popup("secret.gui"):
             imgui.push_style_color(imgui.COLOR_TEXT, .702, 0, .42)
             imgui.text("""+------------------------+
