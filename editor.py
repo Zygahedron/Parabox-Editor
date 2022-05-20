@@ -30,11 +30,11 @@ class Editor:
             self.levels_folder = "~/Library/Application Support/com.PatrickTraynor.PatricksParabox/custom_levels"
         elif platform.system() == "Linux":
             self.levels_folder = "~/.config/unity3d/Patrick Traynor/Patrick's Parabox/custom_levels"
-
+        self.levels_folder_base = self.levels_folder
         self.levels_search = ""
         self.files = None
         self.file_choice = -1
-        self.level_name = "untitled"
+        self.level_name = "untitled.txt"
         self.level = None
         self.code_check = []
         self.error = None
@@ -54,7 +54,7 @@ class Editor:
                     menu_choice = "file.open"
                 if imgui.menu_item("Save", "ctrl+s", enabled = (self.level != None and self.files != None))[0]:
                     save_data = self.level.save()
-                    with open(self.level_name + ".txt", "w" if os.path.exists(self.level_name + ".txt") else "x") as file:
+                    with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
                         file.write(save_data)
                 if imgui.menu_item("Save As...", "ctrl+shift+s", enabled = self.level != None)[0]:
                     menu_choice = "file.saveas"
@@ -139,48 +139,69 @@ class Editor:
             search_changed, self.levels_search = imgui.input_text("Search", self.levels_search, 256)
             try:
                 if folder_changed or not self.files:
-                    os.chdir(os.path.expanduser(self.levels_folder))
+                    try:
+                        os.chdir(os.path.expanduser(self.levels_folder))
+                    except:
+                        os.chdir(os.path.expanduser(self.levels_folder_base))
+                        self.levels_folder = self.levels_folder_base
                     search_changed = True
                 if search_changed:
-                    self.files = glob.glob(self.levels_search + "*.txt")
-                    self.files = [file.removesuffix(".txt") for file in self.files]
-
-                _, self.file_choice = imgui.listbox("Levels", self.file_choice, self.files)
-
-                if imgui.button("Open"):
-                    self.level_name = self.files[self.file_choice]
-                    with open(self.level_name + ".txt") as file:
-                        self.level = Level(self.level_name, file.read())
-                    imgui.close_current_popup()
-
+                    self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
+                clicked, self.file_choice = imgui.listbox("Levels", self.file_choice, 
+                [path for path in self.files])
+                if clicked:
+                    if not self.files[self.file_choice].endswith('.txt'):
+                        self.levels_folder = os.path.relpath(os.path.join(self.levels_folder, self.files[self.file_choice]))
+                        self.file_choice = 0
+                        os.chdir(os.path.expanduser(self.levels_folder))
+                        self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
+                    else:
+                        self.level_name = self.files[self.file_choice]
+                        with open(self.level_name) as file:
+                            self.level = Level(self.level_name, file.read())
+                        imgui.close_current_popup()
             except Exception as e:
                 imgui.text("Failed to load levels folder...")
                 imgui.text(str(e))
                 self.error = traceback.format_exc()
+                print(self.error)
             imgui.end_popup()
         
         if menu_choice == "file.saveas":
             imgui.open_popup("file.saveas")
             self.file_choice = 0
+            self.files = None
         if imgui.begin_popup("file.saveas"):
             folder_changed, self.levels_folder = imgui.input_text("Levels folder", self.levels_folder, 256)
             name_changed, self.level_name = imgui.input_text("Name", self.level_name, 256)
             try:
-                if folder_changed or not self.files:
-                    os.chdir(os.path.expanduser(self.levels_folder))
-                    self.files = glob.glob("*.txt")
-                    self.files = [file.removesuffix(".txt") for file in self.files]
+                if folder_changed or self.files is None:
+                    try:
+                        os.chdir(os.path.expanduser(self.levels_folder))
+                    except:
+                        os.chdir(os.path.expanduser(self.levels_folder_base))
+                        self.levels_folder = self.levels_folder_base
+                    self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
                 if name_changed:
                     self.file_choice = -1
-
                 clicked, self.file_choice = imgui.listbox("Levels", self.file_choice, self.files)
+                is_directory = not self.files[self.file_choice].endswith('.txt')
                 if clicked:
-                    self.level_name = self.files[self.file_choice]
-
+                    if is_directory:
+                        self.levels_folder = os.path.relpath(os.path.join(self.levels_folder, self.files[self.file_choice]))
+                        self.file_choice = 0
+                        os.chdir(os.path.expanduser(self.levels_folder))
+                        self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
+                        clicked = False
+                        self.file_choice = -1
+                    else:
+                        self.level_name = self.files[self.file_choice]
+                if self.level_name in self.files:
+                    self.file_choice = self.files.index(self.level_name)
                 new = self.file_choice == -1
-                if imgui.button("Save New" if new else "Overwrite"):
+                if (imgui.button("Save New") if new else False) or clicked:
                     save_data = self.level.save()
-                    with open(self.level_name + ".txt", "x" if new else "w") as file:
+                    with open(self.level_name, "x" if new else "w") as file:
                         file.write(save_data)
                     imgui.close_current_popup()
 
@@ -211,6 +232,8 @@ and while placing a box, it will let you place a clone of said box.""")
         if self.level:
             for block in self.level.blocks.values():
                 if block.fillwithwalls or block.width <= 0 or block.height <= 0:
+                    if self.menuing and self.menuing[0] == block:
+                        self.menuing = None
                     continue
                 imgui.set_next_window_size(130, 149, condition=imgui.APPEARING)
                 imgui.set_next_window_position(
@@ -261,8 +284,6 @@ and while placing a box, it will let you place a clone of said box.""")
                                     self.cursor_held = None
                             if imgui.is_mouse_released():
                                 self.clicked = None
-
-
                         if (self.menuing or self.hovered or [0])[0] == block:
                             if imgui.begin_popup_context_window():
                                 if not self.menuing:

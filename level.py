@@ -4,11 +4,11 @@ from re import S
 from random import random
 from collections import OrderedDict
 
-def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000, blinkoffset=0):
+def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000, blink_offset=0):
     size = min(width,height)
     if solid:
         #patrick told me (balt) the code behind blinking in dms, thanks to him <3
-        if floor(((time.time())*7.12)+blinkoffset)%26 == 0:
+        if floor(((time.time())*7.12)+blink_offset)%26 == 0:
             draw_list.add_polyline([(x + (1*width)/8, y + (7*height/16)), (x + (3*width)/8, y + (7*height/16))], color, thickness=size/15)
             draw_list.add_polyline([(x + (5*width)/8, y + (7*height/16)), (x + (7*width)/8, y + (7*height/16))], color, thickness=size/15)
         else:
@@ -49,6 +49,14 @@ def draw_shine(draw_list, x, y, width, height, rtl):
         else:
             draw_list.add_rect_filled(x + (1 - half_cos(t))*width, y, x + (1 - half_cos(t + 0.5))*width, y + height, 0x7fffffff)
 
+special_effects = {
+    0: 'None',
+    2: 'Right flip effect',
+    3: 'Left flip effect',
+    8: 'Draw symbol for Inner Push / Extrude / Priority being different than the default',
+    11: 'Don\'t show box in ASCII grid mode',
+    12: 'Don\'t draw border when in Infinite Exit/Enter void'
+}
 class Block:
     def __init__(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect):
         self.x = int(x)
@@ -81,10 +89,7 @@ class Block:
             return self
 
     def full_copy(self, id=None):
-        new = Block(0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
-        for child in self.children:
-            new.place_child(child.x, child.y, child.copy())
-        return new
+        return Block(0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
 
     def make_ref(self, new=True):
         return Ref(0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, "-1", self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
@@ -124,9 +129,10 @@ class Block:
 
         if self.fliph and depth >= 0:
             draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
-
+        if self.specialeffect in [2,3]:
+            draw_shine(draw_list, x, y, width, height, self.specialeffect == 3)
         if self.player:
-            draw_eyes(draw_list, x, y, width, height, True, blinkoffset=self.blinkoffset)
+            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
@@ -195,28 +201,32 @@ class Block:
             changed, value = imgui.input_float("Zoom Factor", self.zoomfactor)
             if changed:
                 self.zoomfactor = value
-            changed, value = imgui.input_int("Fill With Walls", self.fillwithwalls)
+            changed, value = imgui.checkbox("Fill With Walls", bool(self.fillwithwalls))
             if changed:
-                self.fillwithwalls = value
-
-            changed, value = imgui.input_int("Player", self.player)
+                self.fillwithwalls = int(value)
+                if value:
+                    while len(self.children) != 0: #for whatever reason, iterating through self.children stops early, and i gotta do it more than once. :/
+                        for child in self.children:
+                            self.remove_child(child)
+            changed, value = imgui.checkbox("Player", bool(self.player))
             if changed:
-                self.player = value
-            changed, value = imgui.input_int("Possessable", self.possessable)
+                self.player = int(value)
+            if self.player:
+                changed, value = imgui.input_int("Player Order", self.playerorder)
+                if changed:
+                    self.playerorder = value
+            changed, value = imgui.checkbox("Possessable", bool(self.possessable))
             if changed:
-                self.possessable = value
-            changed, value = imgui.input_int("Player Order", self.playerorder)
+                self.possessable = int(value)
+            changed, value = imgui.checkbox("Flip Horizontally", bool(self.fliph))
             if changed:
-                self.playerorder = value
-            changed, value = imgui.input_int("Flip Horizontally", self.fliph)
+                self.fliph = int(value)
+            changed, value = imgui.checkbox("Float in Space", bool(self.floatinspace))
             if changed:
-                self.fliph = value
-            changed, value = imgui.input_int("Float in Space", self.floatinspace)
+                self.floatinspace = int(value)
+            changed, value = imgui.combo("Special Effect", list(special_effects.keys()).index(self.specialeffect), list(special_effects.values()))
             if changed:
-                self.floatinspace = value
-            changed, value = imgui.input_int("Special Effect", self.specialeffect)
-            if changed:
-                self.specialeffect = value
+                self.specialeffect = list(special_effects.keys())[value]
 
             imgui.end_menu()
 
@@ -311,7 +321,7 @@ class Ref:
         self.fliph = int(fliph)
         self.floatinspace = int(floatinspace)
         self.specialeffect = int(specialeffect)
-
+        self.blinkoffset = random()*26
         self.parent = None
 
     def copy(self, held=False): # return non-exit copy
@@ -356,9 +366,10 @@ class Ref:
 
         if self.fliph:
             draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
-
+        if self.specialeffect in [2,3]:
+            draw_shine(draw_list, x, y, width, height, self.specialeffect == 3)
         if self.player:
-            draw_eyes(draw_list, x, y, width, height, True)
+            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
@@ -427,44 +438,47 @@ class Ref:
             if changed:
                 self.id = value
 
-            changed, value = imgui.input_int("Exit Block", self.exitblock)
+            changed, value = imgui.checkbox("Exit Block", bool(self.exitblock))
             if changed:
-                self.exitblock = value
-            changed, value = imgui.input_int("Infinite Exit", self.infexit)
-            if changed:
-                self.infexit = value
-            changed, value = imgui.input_int("-> Layer", self.infexitnum)
-            if changed:
-                self.infexitnum = value
-            changed, value = imgui.input_int("Infinite Enter", self.infenter)
-            if changed:
-                self.infenter = value
-            changed, value = imgui.input_int("-> Layer##", self.infenternum)
-            if changed:
-                self.infenternum = value
-            changed, value = imgui.input_int("-> From ID", self.infenterid)
-            if changed:
-                self.infenterid = value
-
-            changed, value = imgui.input_int("Player", self.player)
+                self.exitblock = int(value)
+                if not value:
+                    self.infexit = 0
+                    self.infenter = 0
+                else:
+                    self.infexit = 1
+            if self.exitblock:
+                changed, value = imgui.combo("Exit Type", int(self.infenter), ['Infinite Exit','Infinite Enter'])
+                if changed:
+                    self.infexit = int(value == 0)
+                    self.infenter = int(value == 1)
+                changed, value = imgui.input_int("-> Layer", self.infexitnum if self.infexit else self.infenternum)
+                if changed:
+                    if self.infexit:
+                        self.infexitnum = max(value,0)
+                    else:
+                        self.infenternum = max(value,0)
+                changed, value = imgui.input_int("-> From ID", self.infenterid)
+                if changed:
+                    self.infenterid = value
+            changed, value = imgui.checkbox("Player", self.player)
             if changed:
                 self.player = value
-            changed, value = imgui.input_int("Possessable", self.possessable)
+            if self.player:
+                changed, value = imgui.input_int("Player Order", self.playerorder)
+                if changed:
+                    self.playerorder = value
+            changed, value = imgui.checkbox("Possessable", self.possessable)
             if changed:
                 self.possessable = value
-            changed, value = imgui.input_int("Player Order", self.playerorder)
-            if changed:
-                self.playerorder = value
-            changed, value = imgui.input_int("Flip Horizontally", self.fliph)
+            changed, value = imgui.checkbox("Flip Horizontally", self.fliph)
             if changed:
                 self.fliph = value
-            changed, value = imgui.input_int("Float in Space", self.floatinspace)
+            changed, value = imgui.checkbox("Float in Space", self.floatinspace)
             if changed:
                 self.floatinspace = value
-            changed, value = imgui.input_int("Special Effect", self.specialeffect)
+            changed, value = imgui.combo("Special Effect", list(special_effects.keys()).index(self.specialeffect), list(special_effects.values()))
             if changed:
-                self.specialeffect = value
-
+                self.specialeffect = list(special_effects.keys())[value]
             imgui.end_menu()
 
 class Wall:
@@ -474,6 +488,7 @@ class Wall:
         self.x = int(x)
         self.y = int(y)
         self.player = int(player)
+        self.blinkoffset = random()*26
         self.possessable = int(possessable)
         self.playerorder = int(playerorder)
         self.parent = None
@@ -518,9 +533,10 @@ class Wall:
             draw_list.add_rect_filled(x, y + height*4/5, x + width/5, y + height, self.parent.color(level, 1.25) if self.parent else 0xffbfbfbf, min(width, height)/4, bottom_and_left)
         if bottomright and not (bottom or right):
             draw_list.add_rect_filled(x + width*4/5, y + height*4/5, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, bottom_and_right)
-        if self.player or self.possessable:
-            draw_eyes(draw_list, x, y, width, height, self.player)
-
+        if self.player:
+            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset)
+        elif self.possessable:
+            draw_eyes(draw_list, x, y, width, height, False)
     def menu(self, level):
         if imgui.begin_menu("Change Wall Type"):
             if imgui.selectable("Normal")[0]:
@@ -559,7 +575,6 @@ class Floor:
         self.y = int(y)
         self.type = floor_type
         self.extra_data = extra_data
-
         self.parent = None
 
     def copy(self, held=False):
@@ -576,7 +591,7 @@ class Floor:
         color = self.parent.color(level) if self.parent else 0x7fffffff
 
         if self.type == "PlayerButton":
-            draw_eyes(draw_list, x + width/10, y + height/10, width * 8/10, height * 8/10, True, color)
+            draw_eyes(draw_list, x + width/10, y + height/10, width * 8/10, height * 8/10, True, color, blink_offset = ((time.time())*-7.12+1))
             other = self.parent.get_child(self.x, self.y) if self.parent else None
             if other and type(other) != Floor and other.player:
                 draw_list.add_rect(x, y, x+width, y+height, 0xffffffff, thickness=min(width,height)/20)
@@ -616,7 +631,7 @@ class Floor:
             changed, value = imgui.input_text("Type", self.type, 64)
             if changed:
                 self.type = value
-            changed, value = imgui.input_text("Extra Data", self.extra_data, 64)
+            changed, value = imgui.input_text("Extra Data", self.extra_data, 2048)
             if changed:
                 self.extra_data = value
 
@@ -758,8 +773,9 @@ class Level:
         # replace exitable refs with original blocks
         for id, ref in ref_exits.items():
             parent = ref.parent
-            parent.remove_child(ref)
-            parent.place_child(ref.x, ref.y, self.blocks[id])
+            if parent is not None:
+                parent.remove_child(ref)
+                parent.place_child(ref.x, ref.y, self.blocks[id])
 
     def save(self):
         data = "version 4\n"
