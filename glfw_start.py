@@ -96,7 +96,7 @@ def main():
                 key.down = False
                 key.pressed = False
 
-        gl.glClearColor(0.3, 0.3, 0.3, 1)
+        gl.glClearColor(0.1, 0.1, 0.1, 1)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
         imgui.render()

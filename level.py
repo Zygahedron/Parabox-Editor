@@ -222,9 +222,11 @@ class Block:
         if changed:
             self.player = int(value)
         if self.player:
+            imgui.indent()
             changed, value = imgui.input_int("Player Order", self.playerorder)
             if changed:
                 self.playerorder = value
+            imgui.unindent()
         changed, value = imgui.checkbox("Possessable", bool(self.possessable))
         if changed:
             self.possessable = int(value)
@@ -320,32 +322,32 @@ class Ref:
         changed, value = imgui.checkbox("Exit Block", bool(self.exitblock))
         if changed:
             self.exitblock = int(value)
-            if not value:
-                self.infexit = 0
-                self.infenter = 0
-            else:
-                self.infexit = 1
-        if self.exitblock:
-            changed, value = imgui.combo("Exit Type", int(self.infenter), ['Infinite Exit','Infinite Enter'])
-            if changed:
-                self.infexit = int(value == 0)
-                self.infenter = int(value == 1)
-            changed, value = imgui.input_int("-> Layer", self.infexitnum if self.infexit else self.infenternum)
+        changed, value = imgui.combo("Reference Type", 2 if not (self.infexit or self.infenter) else int(self.infenter), ['Infinite Exit','Infinite Enter','Clone'])
+        if changed:
+            self.infexit = int(value == 0)
+            self.infenter = int(value == 1)
+        if self.infexit or self.infenter:
+            imgui.indent()
+            changed, value = imgui.input_int("Layer", self.infexitnum if self.infexit else self.infenternum)
             if changed:
                 if self.infexit:
                     self.infexitnum = max(value,0)
                 else:
                     self.infenternum = max(value,0)
-            changed, value = imgui.input_int("-> From ID", self.infenterid)
-            if changed:
-                self.infenterid = value
+            if self.infenter:
+                changed, value = imgui.input_int("From ID", self.infenterid)
+                if changed:
+                    self.infenterid = value
+            imgui.unindent()
         changed, value = imgui.checkbox("Player", self.player)
         if changed:
             self.player = value
         if self.player:
+            imgui.indent()
             changed, value = imgui.input_int("Player Order", self.playerorder)
             if changed:
                 self.playerorder = value
+            imgui.unindent()
         changed, value = imgui.checkbox("Possessable", self.possessable)
         if changed:
             self.possessable = value
@@ -420,9 +422,11 @@ class Wall:
         if changed:
             self.player = value
         if self.player:
+            imgui.indent()
             changed, value = imgui.input_int("Player Order", self.playerorder)
             if changed:
                 self.playerorder = value
+            imgui.unindent()
         changed, value = imgui.checkbox("Possessable", self.possessable)
         if changed:
             self.possessable = value

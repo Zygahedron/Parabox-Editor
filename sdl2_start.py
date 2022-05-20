@@ -12,6 +12,7 @@ from imgui.integrations.sdl2 import SDL2Renderer
 import time
 
 from editor import *
+import style as imgui_style
 
 class Key:
     def __init__(self):
@@ -90,7 +91,7 @@ def main():
             key.pressed = False
             key.released = False
 
-        gl.glClearColor(0.3, 0.3, 0.3, 1)
+        gl.glClearColor(0.1, 0.1, 0.1, 1)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
         imgui.render()
