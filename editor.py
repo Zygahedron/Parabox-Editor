@@ -128,6 +128,7 @@ class Editor:
             imgui.pop_style_color(1)
             imgui.push_style_color(imgui.COLOR_TEXT, *colorsys.hsv_to_rgb((time.time()/5)%1,1,1))
             imgui.text('Editor made with love by Zygan#0404')
+            # despite my contributions, zygan made most of the code, so i don't feel crediting myself here would be justified -balt
             imgui.pop_style_color(1)
             imgui.end_popup()
 
