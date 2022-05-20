@@ -13,6 +13,7 @@ import traceback
 
 from level import *
 from editor import *
+import style as imgui_style
 
 # TODO: pick different default per os
 if platform.system() == "Windows":
@@ -60,7 +61,8 @@ def main():
     imgui.create_context()
     window = impl_glfw_init()
     impl = GlfwRenderer(window)
-
+    style = imgui.get_style()
+    imgui_style.set(style)
     levels_search = ""
     files = None
     open_level_name = ""

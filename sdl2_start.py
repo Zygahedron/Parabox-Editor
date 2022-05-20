@@ -51,7 +51,8 @@ def main():
     imgui.create_context()
     window, gl_context = impl_pysdl2_init()
     impl = SDL2Renderer(window)
-
+    style = imgui.get_style()
+    imgui_style.set(style)
     editor = Editor()
 
     running = True
