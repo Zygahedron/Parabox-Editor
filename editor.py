@@ -85,7 +85,7 @@ class Editor:
                     menu_choice = "file.saveas"
                 elif self.files != None:
                     save_data = self.level.save()
-                    with open(self.level_name + ".txt", "w" if os.path.exists(self.level_name + ".txt") else "x") as file:
+                    with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
                         file.write(save_data)
         if keyboard.up.pressed:
             self.code_check.append('up')
