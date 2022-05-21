@@ -71,12 +71,12 @@ class Block:
         self.sat = float(sat)
         self.val = float(val)
         self.zoomfactor = float(zoomfactor)
-        self.fillwithwalls = int(fillwithwalls)
-        self.player = int(player)
-        self.possessable = int(possessable)
+        self.fillwithwalls = bool(fillwithwalls)
+        self.player = bool(player)
+        self.possessable = bool(possessable)
         self.playerorder = int(playerorder)
-        self.fliph = int(fliph)
-        self.floatinspace = int(floatinspace)
+        self.fliph = bool(fliph)
+        self.floatinspace = bool(floatinspace)
         self.specialeffect = int(specialeffect)
         self.blinkoffset = random()*26
         self.parent = None
@@ -102,7 +102,7 @@ class Block:
             return self.make_ref(False).save(indent, saved_blocks)
         else:
             saved_blocks.append(self)
-        line = ["Block", self.x, self.y, self.id, self.width, self.height, f"{self.hue:1.3g}", f"{self.sat:1.3g}", f"{self.val:1.3g}", f"{self.zoomfactor:1.3g}", self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
+        line = ["Block", int(self.x), int(self.y), int(self.id), int(self.width), int(self.height), f"{self.hue:1.3g}", f"{self.sat:1.3g}", f"{self.val:1.3g}", f"{self.zoomfactor:1.3g}", int(self.fillwithwalls), int(self.player), int(self.possessable), int(self.playerorder), int(self.fliph), int(self.floatinspace), int(self.specialeffect)]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         for child in self.children:
             if 0 <= child.x < self.width and 0 <= child.y < self.height:
@@ -247,17 +247,17 @@ class Ref:
         self.x = int(x)
         self.y = int(y)
         self.id = int(id)
-        self.exitblock = int(exitblock)
-        self.infexit = int(infexit)
+        self.exitblock = bool(exitblock)
+        self.infexit = bool(infexit)
         self.infexitnum = int(infexitnum)
-        self.infenter = int(infenter)
+        self.infenter = bool(infenter)
         self.infenternum = int(infenternum)
         self.infenterid = int(infenterid)
-        self.player = int(player)
-        self.possessable = int(possessable)
+        self.player = bool(player)
+        self.possessable = bool(possessable)
         self.playerorder = int(playerorder)
-        self.fliph = int(fliph)
-        self.floatinspace = int(floatinspace)
+        self.fliph = bool(fliph)
+        self.floatinspace = bool(floatinspace)
         self.specialeffect = int(specialeffect)
         self.blinkoffset = random()*26
         self.parent = None
@@ -266,7 +266,7 @@ class Ref:
         return Ref(0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
 
     def save(self, indent, saved_blocks):
-        line = ["Ref", self.x, self.y, self.id, self.exitblock, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect]
+        line = ["Ref", int(self.x), int(self.y), int(self.id), int(self.exitblock), int(self.infexit), int(self.infexitnum), int(self.infenter), int(self.infenternum), int(self.infenterid), int(self.player), int(self.possessable), int(self.playerorder), int(self.fliph), int(self.floatinspace), int(self.specialeffect)]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
@@ -369,12 +369,12 @@ class Wall:
         self.y = int(y)
         self.player = int(player)
         self.blinkoffset = random()*26
-        self.possessable = int(possessable)
-        self.playerorder = int(playerorder)
+        self.possessable = bool(possessable)
+        self.playerorder = bool(playerorder)
         self.parent = None
 
     def save(self, indent, saved_blocks):
-        line = ["Wall", self.x, self.y, self.player, self.possessable, self.playerorder]
+        line = ["Wall", int(self.x), int(self.y), int(self.player), int(self.possessable), int(self.playerorder)]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
     def copy(self, held=False):
@@ -449,7 +449,7 @@ class Floor:
         return Floor(0, 0, self.type, self.extra_data)
 
     def save(self, indent, saved_blocks):
-        line = ["Floor", self.x, self.y, self.type]
+        line = ["Floor", int(self.x), int(self.y), self.type]
         if self.extra_data and self.extra_data != "":
             line.append(self.extra_data.replace(" ","_").replace('\n','\\n'))
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)

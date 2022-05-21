@@ -34,7 +34,7 @@ class Editor:
         self.levels_search = ""
         self.files = None
         self.file_choice = -1
-        self.level_name = "untitled.txt"
+        self.level_name = None
         self.level = None
         self.code_check = []
         self.error = None
@@ -50,9 +50,10 @@ class Editor:
             if imgui.begin_menu("File", True):
                 if imgui.menu_item("New", "ctrl+n")[0]:
                     self.level = Level("untitled", "version 4\n#\n")
+                    self.level_name = None
                 if imgui.menu_item("Open...", "ctrl+o")[0]:
                     menu_choice = "file.open"
-                if imgui.menu_item("Save", "ctrl+s", enabled = (self.level != None and self.files != None))[0]:
+                if imgui.menu_item("Save", "ctrl+s", enabled = (self.level != None and self.files != None and self.level_name != None))[0]:
                     save_data = self.level.save()
                     with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
                         file.write(save_data)
@@ -80,7 +81,7 @@ class Editor:
             if keyboard.o.pressed:
                 menu_choice = "file.open"
             if keyboard.s.pressed and self.level != None:
-                if io.key_shift:
+                if io.key_shift or self.level_name == None:
                     menu_choice = "file.saveas"
                 elif self.files != None:
                     save_data = self.level.save()
@@ -173,6 +174,7 @@ class Editor:
             self.file_choice = 0
             self.files = None
         if imgui.begin_popup("file.saveas"):
+            if not self.level_name: self.level_name = "untitled.txt"
             folder_changed, self.levels_folder = imgui.input_text("Levels folder", self.levels_folder, 256)
             name_changed, self.level_name = imgui.input_text("Name", self.level_name, 256)
             try:
