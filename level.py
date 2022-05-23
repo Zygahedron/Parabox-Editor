@@ -240,7 +240,19 @@ class Block:
         if changed:
             self.specialeffect = list(special_effects.keys())[value]
     
-    palette_menu = menu #functions are first class baby!! woo!
+    def palette_menu(self, level):
+        self.menu(level)
+        imgui.separator()
+        if imgui.selectable('Create Clone')[0]:
+            return Ref(0,0,self.id,0,0,0,0,0,0,0,0,0,0,0,0)
+        if imgui.selectable('Create Infinite Exit')[0]:
+            return Ref(0,0,self.id,1,1,0,0,0,0,0,0,0,0,0,0)
+        if imgui.selectable('Create Infinite Enter')[0]:
+            while level.next_free in level.blocks:
+                level.next_free += 1
+            level.blocks[str(level.next_free)] = Block(0,0,level.next_free,5,5,self.hue,self.sat,self.val,1,0,0,0,0,0,0,0)
+            return Ref(0,0,self.id,1,0,0,1,0,self.id,0,0,0,0,0,0)
+
 
 class Ref:
     def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect):

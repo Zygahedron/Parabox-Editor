@@ -1,5 +1,6 @@
 import imgui
 from level import *
+import style
 
 import glob
 import os
@@ -37,6 +38,7 @@ class Editor:
         self.level_name = "untitled.txt"
         self.level = None
         self.code_check = []
+        self.did_code = False
         self.error = None
 
         imgui.get_io().ini_file_name = b""
@@ -44,7 +46,8 @@ class Editor:
     def main_loop(self, keyboard):
         overlay_draw_list = imgui.get_overlay_draw_list()
         io = imgui.get_io()
-
+        if self.did_code:
+            imgui.get_style().colors[imgui.COLOR_TEXT] = list(colorsys.hsv_to_rgb((time.time()/5)%1,1,1))+[1]
         menu_choice = None
         if imgui.begin_main_menu_bar():
             if imgui.begin_menu("File", True):
@@ -103,6 +106,9 @@ class Editor:
         if len(self.code_check) == 11:
             if all([a==b for a, b in zip(self.code_check,['up','up','down','down','left','right','left','right','b','a','enter'])]):
                 imgui.open_popup("secret.gui")
+                self.did_code = not self.did_code
+                if not self.did_code:
+                    style.set(imgui.get_style())
                 self.code_check = []
             else:
                 self.code_check = self.code_check[1:]
@@ -126,10 +132,8 @@ class Editor:
 
 """)
             imgui.pop_style_color(1)
-            imgui.push_style_color(imgui.COLOR_TEXT, *colorsys.hsv_to_rgb((time.time()/5)%1,1,1))
-            imgui.text('Editor made with love by Zygan#0404')
+            imgui.text('Editor made with love by Zygan#0404\nInput the code again to turn off rainbow mode.')
             # despite my contributions, zygan made most of the code, so i don't feel crediting myself here would be justified -balt
-            imgui.pop_style_color(1)
             imgui.end_popup()
 
         if menu_choice == "file.open":
