@@ -12,7 +12,7 @@ def to_bool(val):
 
 def draw_mouth(order,draw_list,x,y,width,height,color=0x7f000000):
     size = min(width,height)
-    if order <= 0:
+    if order <= 0 or size < 15:
         return
     elif order == 1:
         draw_list.add_polyline([[x+a*width,y+b*height] for a,b in [
@@ -37,8 +37,10 @@ def draw_mouth(order,draw_list,x,y,width,height,color=0x7f000000):
         draw_list.add_rect_filled(x+(.4)*width,y+(.59)*height,x+(.6)*width,y+(.72)*height, color)
 
 def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000, blink_offset=0, order=-1):
-    draw_mouth(order,draw_list,x,y,width,height,color)
     size = min(width,height)
+    if size < 15:
+        return
+    draw_mouth(order,draw_list,x,y,width,height,color)
     if solid:
         #patrick told me (balt) the code behind blinking in dms, thanks to him <3
         if floor(((time.time())*7.12)+blink_offset)%26 == 0:
@@ -114,6 +116,10 @@ class Block:
         self.blinkoffset = random()*26
         self.parent = None
         self.children = []
+        self.window_size = 25
+
+    def __repr__(self):
+        return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
 
     def copy(self, held=False):
         if self.fillwithwalls: return self.full_copy() # duplicate solid blocks
@@ -217,13 +223,16 @@ class Block:
     def menu(self, level):
         changed, value = imgui.input_int("ID", self.id)
         if changed:
+            delta = value - self.id
+            while value in [block.id for block in level.blocks.values()]:
+                value += delta
             self.id = value
         changed, value = imgui.input_int("Width", self.width)
         if changed:
-            self.width = value
+            self.width = max(value,0)
         changed, value = imgui.input_int("Height", self.height)
         if changed:
-            self.height = value
+            self.height = max(value,0)
         changed, value = imgui.input_float("Zoom Factor", self.zoomfactor)
         if changed:
             self.zoomfactor = value
@@ -283,9 +292,8 @@ class Block:
         if imgui.selectable('Create Infinite Enter')[0]:
             while level.next_free in level.blocks:
                 level.next_free += 1
-            level.blocks[str(level.next_free)] = Block(0,0,level.next_free,5,5,self.hue,self.sat,self.val,1,0,0,0,0,0,0,0)
-            return Ref(0,0,self.id,1,0,0,1,0,self.id,0,0,0,0,0,0)
-
+            level.blocks[level.next_free] = Block(0,0,level.next_free,5,5,self.hue,self.sat,self.val,1,0,0,0,0,0,0,0)
+            return Ref(0,0,level.next_free,1,0,0,1,0,self.id,0,0,0,0,0,0)
 
 class Ref:
     def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect):
@@ -307,6 +315,9 @@ class Ref:
         self.blinkoffset = random()*26
         self.parent = None
 
+    def __repr__(self):
+        return f'<Reference of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id}>" if self.parent is not None else None}>'
+
     def copy(self, held=False): # return non-exit copy
         return Ref(0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
 
@@ -316,8 +327,8 @@ class Ref:
 
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
 
-        if str(self.id) in level.blocks:
-            orig = level.blocks[str(self.id)]
+        if self.id in level.blocks:
+            orig = level.blocks[self.id]
             draw_list.add_rect_filled(x, y, x+width, y+height, orig.color(level, 1 if orig.fillwithwalls else 0.5))
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
             orig.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
@@ -418,6 +429,9 @@ class Wall:
         self.playerorder = to_bool(playerorder)
         self.parent = None
 
+    def __repr__(self):
+        return f'<Wall at ({self.x},{self.y}) inside of {self.parent}>'
+
     def save(self, indent, saved_blocks):
         line = ["Wall", int(self.x), int(self.y), int(self.player), int(self.possessable), int(self.playerorder)]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
@@ -489,6 +503,9 @@ class Floor:
         self.floor_index = floor_types.index(floor_type)
         self.extra_data = extra_data
         self.parent = None
+
+    def __repr__(self):
+        return f'<Floor of type {self.type} at ({self.x},{self.y}) inside of {self.parent}>'
 
     def copy(self, held=False):
         return Floor(0, 0, self.type, self.extra_data)
@@ -624,15 +641,15 @@ class Level:
                     self.roots.append(block)
                 last_block = block
                 if fillwithwalls != "1":
-                    if not id in self.blocks:
-                        self.blocks[id] = block
+                    if not int(id) in self.blocks:
+                        self.blocks[int(id)] = block
                     else:
                         print("duplicate block with id " + id)
             elif block_type == "Ref":
                 [x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
                 ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect)
                 if int(exitblock) and not int(infenter):
-                    ref_exits[id] = ref
+                    ref_exits[int(id)] = ref
                 if parent:
                     parent.place_child(int(x), int(y), ref)
                 else:

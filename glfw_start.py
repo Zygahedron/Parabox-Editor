@@ -98,7 +98,6 @@ def main():
 
         gl.glClearColor(0.1, 0.1, 0.1, 1)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-
         imgui.render()
         impl.render(imgui.get_draw_data())
         glfw.swap_buffers(window)

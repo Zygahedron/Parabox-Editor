@@ -16,7 +16,7 @@ class Editor:
         self.menuing = None
         self.clicked = None
         self.help_open = False
-        self.new_size = 5
+        self.new_size = [5,5]
         self.samples = [
             Wall(0, 0, 0, 0, 0),
             Floor(0, 0, "Button", ""),
@@ -231,7 +231,8 @@ and while placing a box, it will let you place a clone of said box.""")
                     if self.menuing and self.menuing[0] == block:
                         self.menuing = None
                     continue
-                imgui.set_next_window_size(130, 149, condition=imgui.APPEARING)
+                imgui.set_next_window_size(130, 157, condition=imgui.APPEARING)
+                imgui.set_next_window_size(block.window_size*block.width,block.window_size*block.height+27, condition=not imgui.APPEARING)
                 imgui.set_next_window_position(
                     (30 + int(block.id) * 150) % (imgui.get_io().display_size.x - 150),
                     50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*50,
@@ -245,11 +246,10 @@ and while placing a box, it will let you place a clone of said box.""")
                         y += 4
                         w, h = imgui.get_content_region_available()
                         w += 8
-                        block.draw(draw_list, x, y, w, w * block.height/block.width, self.level, -1, block.fliph)
-
+                        block.draw(draw_list, x, y, w, h, self.level, -1, block.fliph)
                         pos = imgui.get_mouse_position()
                         px = int((pos.x - x) / (w / block.width))
-                        py = block.height - 1 - int((pos.y - y) / (w / block.width))
+                        py = block.height - 1 - int((pos.y - y) / max((h / block.height),0.01))
                         shift = imgui.get_io().key_shift
                         if imgui.is_window_hovered():
                             self.hovered = (block, px, py)
@@ -303,6 +303,8 @@ and while placing a box, it will let you place a clone of said box.""")
                             else:
                                 self.menuing = None
                     imgui.end_child()
+                    if block.window_size != imgui.get_window_width()/block.width:
+                        block.window_size = imgui.get_window_width()/block.width
                 imgui.end()
 
             window_size = imgui.get_io().display_size
@@ -324,7 +326,7 @@ and while placing a box, it will let you place a clone of said box.""")
                     for sample in self.samples:
                         sample.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0, False)
                         i += 1
-                    for id, block in sorted(self.level.blocks.items()):
+                    for block in [self.level.blocks[i] for i in sorted(self.level.blocks.keys())]:
                         block.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0, block.fliph)
                         i += 1
                     px, py = x + (i % palette_width)*50, y + int(i / palette_width)*50
@@ -350,9 +352,9 @@ and while placing a box, it will let you place a clone of said box.""")
                                         self.cursor_held = sorted(self.level.blocks.items())[i - len(self.samples)][1].copy()
                                         self.clicked = self.hovered
                                     elif i == len(self.samples) + len(self.level.blocks):
-                                        while str(self.level.next_free) in self.level.blocks:
+                                        while self.level.next_free in self.level.blocks:
                                             self.level.next_free += 1
-                                        self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), 5, 5, 0.6, 0.8, 1, 1, 0, 0, 0, 0, 0, 0, 0)
+                                        self.level.blocks[self.level.next_free] = Block(0, 0, self.level.next_free, 5, 5, 0.6, 0.8, 1, 1, 0, 0, 0, 0, 0, 0, 0)
 
                     if (self.menuing or self.hovered or [0])[0] == None:
                         if imgui.begin_popup_context_window():
@@ -396,9 +398,9 @@ and while placing a box, it will let you place a clone of said box.""")
                                     self.cursor_held = pickup
                                 imgui.separator()
                                 if imgui.selectable("Duplicate Block")[0]:
-                                    while str(self.level.next_free) in self.level.blocks:
+                                    while self.level.next_free in self.level.blocks:
                                         self.level.next_free += 1
-                                    self.level.blocks[str(self.level.next_free)] = block.full_copy(str(self.level.next_free))
+                                    self.level.blocks[self.level.next_free] = block.full_copy(self.level.next_free)
                                 if imgui.selectable("Delete Block")[0]:
                                     while len(block.children):
                                         block.remove_child(block.children[0])
@@ -406,20 +408,23 @@ and while placing a box, it will let you place a clone of said box.""")
                                         block.parent.remove_child(block)
                                     self.level.next_free = min(self.level.next_free, block.id)
                                     try:
-                                        del self.level.blocks[str(block.id)]
+                                        del self.level.blocks[block.id]
                                     except KeyError:
                                         pass
                             elif i < len(self.samples) + len(self.level.blocks) + 1:
-                                while str(self.level.next_free) in self.level.blocks:
+                                while self.level.next_free in self.level.blocks:
                                     self.level.next_free += 1
-                                changed, value = imgui.input_int("Size", self.new_size)
-                                if changed and value > 0:
-                                    self.new_size = value
+                                changed, value = imgui.input_int("Width", self.new_size[0])
+                                changed2, value2 = imgui.input_int("Height", self.new_size[1])
+                                if changed and value >= 0:
+                                    self.new_size[0] = value
+                                if changed2 and value2 >= 0:
+                                    self.new_size[1] = value2
                                 for color in Palette.pals[0].colors:
                                     h, s, v = Palette.pals[self.level.metadata["custom_level_palette"]].get_color(color)
                                     r, g, b = colorsys.hsv_to_rgb(h, s, v)
                                     if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
-                                        self.level.blocks[str(self.level.next_free)] = Block(0, 0, str(self.level.next_free), self.new_size, self.new_size, color[0], color[1], color[2], 1, 0, 0, 0, 0, 0, 0, 0)
+                                        self.level.blocks[self.level.next_free] = Block(0, 0, self.level.next_free, *self.new_size, color[0], color[1], color[2], 1, any([n==0 for n in self.new_size]), 0, 0, 0, 0, 0, 0)
                                         self.menuing = None
                                     imgui.same_line()
                                 imgui.new_line()
