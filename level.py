@@ -554,7 +554,9 @@ class Level:
         metadata = [e.split(" ", 1) for e in metadata.split("\n")]
         self.metadata = {e[0]: e[1] for e in metadata}
         if not "attempt_order" in self.metadata: self.metadata["attempt_order"] = "push,enter,eat,possess"
-        self.metadata["attempt_order"] = self.metadata["attempt_order"].split(",")
+        read_metadata = self.metadata["attempt_order"].split(",")
+        self.metadata["attempt_order"] = [[a,True] for a in read_metadata]
+        self.metadata["attempt_order"].extend([[a,False] for a in ['push','enter','eat','possess'] if a not in read_metadata])
         self.metadata["shed"] = "shed" in self.metadata and self.metadata["shed"] == "1"
         self.metadata["inner_push"] = "inner_push" in self.metadata and self.metadata["inner_push"] == "1"
         if not "draw_style" in self.metadata: self.metadata["draw_style"] = "normal"
@@ -638,8 +640,8 @@ class Level:
 
     def save(self):
         data = "version 4\n"
-        if ",".join(self.metadata["attempt_order"]) != "push,enter,eat,possess":
-            data += "attempt_order " + ",".join(self.metadata["attempt_order"]) + "\n"
+        if ",".join([a[0] for a in self.metadata["attempt_order"]]) != "push,enter,eat,possess" or not all([a[1] for a in self.metadata["attempt_order"]]):
+            data += "attempt_order " + ",".join([a[0] for a in self.metadata["attempt_order"] if a[1]]) + "\n"
         if self.metadata["shed"]:
             data += "shed 1\n"
         if self.metadata["inner_push"]:
@@ -696,14 +698,24 @@ class Level:
         if changed:
             self.metadata["inner_push"] = value
         if imgui.begin_menu("Priority / Attempt Order"):
+            excluded = {}
             order = self.metadata["attempt_order"]
-            for item in order:
-                i = order.index(item)
+            for i, item in enumerate(order):
+                if not item[1]:
+                    excluded[i] = item[0]
+                    continue
+                item = item[0]
                 if imgui.arrow_button(item + "-u", imgui.DIRECTION_UP) and i != 0:
                     order[i], order[i-1] = order[i-1], order[i]
                 imgui.same_line()
                 if imgui.arrow_button(item + "-d", imgui.DIRECTION_DOWN) and i != len(order) - 1:
                     order[i], order[i+1] = order[i+1], order[i]
                 imgui.same_line()
-                imgui.text_ansi(item)
+                if imgui.checkbox(item,order[i][1])[0]:
+                    order[i][1] = False
+            if len(excluded) not in [0,4]:
+                imgui.separator()
+            for i, item in excluded.items():
+                if imgui.checkbox(item,order[i][1])[0]:
+                    order[i][1] = True
             imgui.end_menu()

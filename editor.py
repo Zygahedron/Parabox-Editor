@@ -72,8 +72,12 @@ class Editor:
                 self.level.edit_menu()
                 imgui.end_menu()
 
-            if imgui.begin_menu("Help", True):
-                menu_choice = "help.gui"
+            if imgui.begin_menu("Help"):
+                imgui.bullet_text("To create a new level, go to File > New.")
+                imgui.bullet_text("Left click a tile in the palette to grab it, or click the plus to make a new box.")
+                imgui.bullet_text("""Holding down shift while placing a tile will let you draw multiple tiles at once,
+and while placing a box, it will let you place a clone of said box.""")
+                imgui.bullet_text("Right click tiles, in the palette or in a box, to edit them.")
                 imgui.end_menu()
 
             imgui.end_main_menu_bar()
@@ -217,21 +221,6 @@ class Editor:
                 imgui.text_ansi(str(e))
                 self.error = traceback.format_exc()
             imgui.end_popup()
-
-
-        if menu_choice == "help.gui":
-            self.help_open = True
-        if self.help_open:
-            expanded, opened = imgui.begin("Help", True)
-            if expanded:
-                imgui.bullet_text("To create a new level, go to File > New.")
-                imgui.bullet_text("Left click a tile in the palette to grab it, or click the plus to make a new box.")
-                imgui.bullet_text("""Holding down shift while placing a tile will let you draw multiple tiles at once,
-and while placing a box, it will let you place a clone of said box.""")
-                imgui.bullet_text("Right click tiles, in the palette or in a box, to edit them.")
-            imgui.end()
-            if not opened:
-                self.help_open = False
 
         self.last_hovered = self.hovered
         self.hovered = None
