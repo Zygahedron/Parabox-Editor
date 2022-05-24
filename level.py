@@ -10,7 +10,34 @@ def to_bool(val):
     except:
         return val == "True"
 
-def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000, blink_offset=0):
+def draw_mouth(order,draw_list,x,y,width,height,color=0x7f000000):
+    size = min(width,height)
+    if order <= 0:
+        return
+    elif order == 1:
+        draw_list.add_polyline([[x+a*width,y+b*height] for a,b in [
+            [.411,.699],
+            [.470,.616],
+            [.514,.596],
+            [.555,.651]]], color, False, size/15)
+    elif order == 2:
+        draw_list.add_rect_filled(x+(.363)*width,y+(.644)*height,x+(.630)*width,y+(.699)*height, color)
+    elif order == 3:
+        draw_list.add_polyline([[x+a*width,y+b*height] for a,b in [
+            [.4,.6],
+            [.5,.7],
+            [.6,.6]]], color, False, size/15)
+    elif order == 4:
+        draw_list.add_polyline([[x+a*width,y+b*height] for a,b in [
+            [.4,.640],
+            [.6,.707]]], color, False, size/15)
+    elif order == 5:
+        draw_list.add_circle_filled(x+(.541)*width,y+(.685)*height, size/15, color, num_segments=size//4)
+    else:
+        draw_list.add_rect_filled(x+(.4)*width,y+(.59)*height,x+(.6)*width,y+(.72)*height, color)
+
+def draw_eyes(draw_list, x, y, width, height, solid, color=0x7f000000, blink_offset=0, order=-1):
+    draw_mouth(order,draw_list,x,y,width,height,color)
     size = min(width,height)
     if solid:
         #patrick told me (balt) the code behind blinking in dms, thanks to him <3
@@ -141,7 +168,7 @@ class Block:
         if self.specialeffect in [2,3]:
             draw_shine(draw_list, x, y, width, height, self.specialeffect == 3)
         if self.player:
-            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset)
+            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset, order = self.playerorder)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
@@ -325,7 +352,7 @@ class Ref:
         if self.specialeffect in [2,3]:
             draw_shine(draw_list, x, y, width, height, self.specialeffect == 3)
         if self.player:
-            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset)
+            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset, order = self.playerorder)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
@@ -432,7 +459,7 @@ class Wall:
         if bottomright and not (bottom or right):
             draw_list.add_rect_filled(x + width*4/5, y + height*4/5, x + width, y + height, self.parent.color(level, 0.75) if self.parent else 0xff3f3f3f, min(width, height)/4, bottom_and_right)
         if self.player:
-            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset)
+            draw_eyes(draw_list, x, y, width, height, True, blink_offset = self.blinkoffset, order = self.playerorder)
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
     def menu(self, level):
