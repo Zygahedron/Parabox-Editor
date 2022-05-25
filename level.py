@@ -229,7 +229,9 @@ class Block:
             self.id = value
         changed, value = imgui.input_int("Width", self.width)
         if changed:
-            self.width = max(value,0)
+            if value != 0:
+                self.window_size = (self.window_size/value)*self.width
+            self.width = value
         changed, value = imgui.input_int("Height", self.height)
         if changed:
             self.height = max(value,0)

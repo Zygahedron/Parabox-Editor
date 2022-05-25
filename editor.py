@@ -7,6 +7,7 @@ import os
 import platform
 import traceback
 import colorsys
+import math
 
 class Editor:
     def __init__(self):
@@ -248,8 +249,8 @@ and while placing a box, it will let you place a clone of said box.""")
                         w += 8
                         block.draw(draw_list, x, y, w, h, self.level, -1, block.fliph)
                         pos = imgui.get_mouse_position()
-                        px = int((pos.x - x) / (w / block.width))
-                        py = block.height - 1 - int((pos.y - y) / max((h / block.height),0.01))
+                        px = int(math.ceil((pos.x - x) / (w / block.width)))
+                        py = block.height - int(math.ceil((pos.y - y) / max((h / block.height),0.01)))
                         shift = imgui.get_io().key_shift
                         if imgui.is_window_hovered():
                             self.hovered = (block, px, py)
@@ -303,6 +304,7 @@ and while placing a box, it will let you place a clone of said box.""")
                             else:
                                 self.menuing = None
                     imgui.end_child()
+                    
                     if block.window_size != imgui.get_window_width()/block.width:
                         block.window_size = imgui.get_window_width()/block.width
                 imgui.end()
