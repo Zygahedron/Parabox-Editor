@@ -87,20 +87,20 @@ def draw_shine(draw_list, x, y, width, height, rtl):
             draw_list.add_rect_filled(x + (1 - half_cos(t))*width, y, x + (1 - half_cos(t + 0.5))*width, y + height, 0x7fffffff)
 
 special_effects = {
-    0: 'None',
-    1: 'Focus on this block (Challenge 30)',
-    2: 'Right flip effect',
-    3: 'Left flip effect',
-    4: '4 (Unused)',
-    5: '5 (Unused)',
-    6: 'Mark Hub Intro block',
-    7: '7 (Unused)',
-    8: 'Draw symbol for Inner Push / Extrude / Priority being different than the default',
-    9: 'Leave sides open to void when floating in space',
-    10: 'Mark Hub Intro ref',
-    11: 'Don\'t show box in ASCII/grid display mode',
-    12: 'Focus camera on this block when multiple players are in the level',
-    13: 'Disable glyph drawing (Performance hack in Multi Inf. 11)'
+    0: '0:  None',
+    1: '1:  Focus on this block (Challenge 30)',
+    2: '2:  Right flip effect',
+    3: '3:  Left flip effect',
+    4: '4:  Unused',
+    5: '5:  Unused',
+    6: '6:  Mark Hub Intro block',
+    7: '7:  Unused',
+    8: '8:  Draw symbol for Inner Push / Extrude / Priority being different than the default',
+    9: '9:  Leave sides open to void when floating in space',
+    10: '10: Mark Hub Intro ref',
+    11: '11: Don\'t show box in ASCII/grid display mode',
+    12: '12: Focus camera on this block when multiple players are in the level',
+    13: '13: Disable glyph drawing (Performance hack in Multi Inf. 11)'
 }
 
 floor_types = ['None','Button','PlayerButton','FastTravel','Info','DemoEnd','Break','Portal','Gallery','Show','Smile']
