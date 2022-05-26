@@ -126,7 +126,7 @@ class Block:
         self.blinkoffset = random()*26
         self.parent = None
         self.children = []
-        self.window_size = 25
+        self.window_size = (130 / self.width)
 
     def __repr__(self):
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
