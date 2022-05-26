@@ -262,8 +262,7 @@ and while placing a box, it will let you place a clone of said box.""")
                     if self.menuing and self.menuing[0] == block:
                         self.menuing = None
                     continue
-                imgui.set_next_window_size(130, 157, condition=imgui.APPEARING)
-                imgui.set_next_window_size(block.window_size*block.width,block.window_size*block.height+27, condition=not imgui.APPEARING)
+                imgui.set_next_window_size(block.window_size, round((block.window_size - 24) / block.width * block.height + 43))
                 imgui.set_next_window_position(
                     (30 + int(block.id) * 150) % (imgui.get_io().display_size.x - 150),
                     50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*200,
@@ -277,7 +276,7 @@ and while placing a box, it will let you place a clone of said box.""")
                         y += 4
                         w, h = imgui.get_content_region_available()
                         w += 8
-                        block.draw(draw_list, x, y, w, w, self.level, -1, block.fliph)
+                        block.draw(draw_list, x, y, w, w / block.width * block.height, self.level, -1, block.fliph)
                         pos = imgui.get_mouse_position()
                         px = int((pos.x - x) / (w / block.width))
                         py = block.height - int(math.ceil((pos.y - y) / max((h / block.height),0.01)))
@@ -334,8 +333,8 @@ and while placing a box, it will let you place a clone of said box.""")
                             else:
                                 self.menuing = None
                     imgui.end_child()
-                    if type(block) == Block and block.window_size != imgui.get_window_width()/block.width:
-                        block.window_size = imgui.get_window_width()/block.width
+                    if type(block) == Block and block.window_size != imgui.get_window_width():
+                        block.window_size = imgui.get_window_width()
                 imgui.end()
 
             window_size = imgui.get_io().display_size

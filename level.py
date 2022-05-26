@@ -126,7 +126,7 @@ class Block:
         self.blinkoffset = random()*26
         self.parent = None
         self.children = []
-        self.window_size = (130 / self.width)
+        self.window_size = 130
 
     def __repr__(self):
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
@@ -238,13 +238,11 @@ class Block:
                 value += delta
             self.id = value
         changed, value = imgui.input_int("Width", self.width)
-        if changed:
-            if value != 0:
-                self.window_size = (self.window_size/value)*self.width
+        if changed and value > 0:
             self.width = value
         changed, value = imgui.input_int("Height", self.height)
-        if changed:
-            self.height = max(value,0)
+        if changed and value > 0:
+            self.height = value
         changed, value = imgui.input_float("Zoom Factor", self.zoomfactor)
         if changed:
             self.zoomfactor = value
