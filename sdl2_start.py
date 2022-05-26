@@ -85,7 +85,8 @@ def main():
 
         imgui.new_frame()
 
-        editor.main_loop(keyboard)
+        if not editor.main_loop(keyboard):
+            break
 
         for key in keyboard.map.values():
             key.pressed = False

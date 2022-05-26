@@ -4,6 +4,7 @@ import style
 
 import glob
 import os
+from pathlib import Path
 import platform
 import traceback
 import colorsys
@@ -19,7 +20,7 @@ class Editor:
         self.help_open = False
         self.new_size = [5,5]
         self.samples = [
-            Wall(0, 0, 0, 0, 0),
+            Wall(0, 0, 0, 0, 0, "_"),
             Floor(0, 0, "Button", ""),
             Block(0, 0, "-1", 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
             Block(0, 0, "-1", 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
@@ -44,6 +45,31 @@ class Editor:
 
         imgui.get_io().ini_file_name = b""
 
+    def save_level(self):
+        save_data, is_hub, parent, level_number, areas, credits, possess_fx, difficulty = self.level.save()
+        print(areas)
+        with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
+            print(save_data)
+            file.write(save_data)
+        if is_hub:
+            with open('credits.txt','x' if not os.path.exists('credits.txt') else 'w') as f:
+                f.write(credits)
+            with open('area_data.txt','x' if not os.path.exists('area_data.txt') else 'w') as f:
+                f.write('\n'.join([f'{name.replace(" ","_")} 0' if name is not None else '' for name in areas]))
+            if not os.path.exists('save0.txt'):
+                with open('save0.txt','x'):
+                    pass
+        elif parent:
+            if not os.path.exists('puzzle_data.txt'):
+                with open('puzzle_data.txt','x'):
+                    pass
+                puzzle_data = {}
+            else:
+                with open('puzzle_data.txt', "r") as file:
+                    puzzle_data = {line.split(' ',1)[0]:line.split(' ',1)[1] for line in file.read().split('\n')}
+            puzzle_data[Path(self.level_name).stem] = f'{difficulty} {possess_fx} {level_number}'
+            with open('puzzle_data.txt', "w") as file:
+                file.write('\n'.join([key + ' ' + value for key,value in puzzle_data.items()]))
     def main_loop(self, keyboard):
         overlay_draw_list = imgui.get_overlay_draw_list()
         io = imgui.get_io()
@@ -58,10 +84,8 @@ class Editor:
                 if imgui.menu_item("Open...", "ctrl+o")[0]:
                     menu_choice = "file.open"
                 if imgui.menu_item("Save", "ctrl+s", enabled = (self.level != None and self.files != None and self.level_name != None))[0]:
-                    save_data = self.level.save()
-                    with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
-                        file.write(save_data)
-                if imgui.menu_item("Save As...", "ctrl+shift+s", enabled = self.level != None)[0]:
+                    self.save_level()
+                if imgui.menu_item("Save As...", "ctrl+shift+s", enabled = self.level != None )[0]:
                     menu_choice = "file.saveas"
                 imgui.separator()
                 if imgui.menu_item("Quit")[0]:
@@ -92,9 +116,7 @@ and while placing a box, it will let you place a clone of said box.""")
                 if io.key_shift or self.level_name == None:
                     menu_choice = "file.saveas"
                 elif self.files != None:
-                    save_data = self.level.save()
-                    with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
-                        file.write(save_data)
+                    self.save_level()
         if keyboard.up.pressed:
             self.code_check.append('up')
         if keyboard.down.pressed:
@@ -139,7 +161,6 @@ and while placing a box, it will let you place a clone of said box.""")
 """)
             imgui.pop_style_color(1)
             imgui.text('Editor made with love by Zygan#0404\nInput the code again to turn off rainbow mode.')
-            # despite my contributions, zygan made most of the code, so i don't feel crediting myself here would be justified -balt
             imgui.end_popup()
 
         if menu_choice == "file.open":
@@ -148,34 +169,45 @@ and while placing a box, it will let you place a clone of said box.""")
         if imgui.begin_popup("file.open"):
             folder_changed, self.levels_folder = imgui.input_text("Levels folder", self.levels_folder, 256)
             search_changed, self.levels_search = imgui.input_text("Search", self.levels_search, 256)
-            try:
-                if folder_changed or not self.files:
-                    try:
-                        os.chdir(os.path.expanduser(self.levels_folder))
-                    except:
-                        os.chdir(os.path.expanduser(self.levels_folder_base))
-                        self.levels_folder = self.levels_folder_base
-                    search_changed = True
-                if search_changed:
+            if folder_changed or not self.files:
+                try:
+                    os.chdir(os.path.expanduser(self.levels_folder))
+                except:
+                    os.chdir(os.path.expanduser(self.levels_folder_base))
+                    self.levels_folder = self.levels_folder_base
+                search_changed = True
+            if search_changed:
+                self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
+            clicked, self.file_choice = imgui.listbox("Levels", self.file_choice, 
+            [path for path in self.files])
+            if clicked:
+                if not self.files[self.file_choice].endswith('.txt'):
+                    self.levels_folder = os.path.relpath(os.path.join(self.levels_folder, self.files[self.file_choice]))
+                    self.file_choice = 0
+                    os.chdir(os.path.expanduser(self.levels_folder))
                     self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
-                clicked, self.file_choice = imgui.listbox("Levels", self.file_choice, 
-                [path for path in self.files])
-                if clicked:
-                    if not self.files[self.file_choice].endswith('.txt'):
-                        self.levels_folder = os.path.relpath(os.path.join(self.levels_folder, self.files[self.file_choice]))
-                        self.file_choice = 0
-                        os.chdir(os.path.expanduser(self.levels_folder))
-                        self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
+                else:
+                    self.level_name = self.files[self.file_choice]
+                    hub_parent = False
+                    level_number = 0
+                    credits = ''
+                    difficulty = 0
+                    possess_vfx = 0
+                    if self.level_name != 'hub.txt':
+                        hub_parent = os.path.exists('hub.txt')
                     else:
-                        self.level_name = self.files[self.file_choice]
-                        with open(self.level_name) as file:
-                            self.level = Level(self.level_name, file.read())
-                        imgui.close_current_popup()
-            except Exception as e:
-                imgui.text("Failed to load levels folder...")
-                imgui.text(str(e))
-                self.error = traceback.format_exc()
-                print(self.error)
+                        with open('credits.txt','r') as f:
+                            credits = f.read()
+                    if hub_parent:
+                        try:
+                            with open('puzzle_data.txt','r') as file:
+                                puzzle_data = {line.split(' ')[0]:line.split(' ')[1:] for line in file.read().split('\n')}
+                            difficulty, possess_vfx, level_number = [int(n) for n in puzzle_data[Path(self.level_name).stem]]
+                        except (FileNotFoundError, KeyError):
+                            pass
+                    with open(self.level_name) as file:
+                        self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
+                    imgui.close_current_popup()
             imgui.end_popup()
         
         if menu_choice == "file.saveas":
@@ -212,9 +244,7 @@ and while placing a box, it will let you place a clone of said box.""")
                     self.file_choice = self.files.index(self.level_name)
                 new = self.file_choice == -1
                 if (imgui.button("Save New") if new else False) or clicked:
-                    save_data = self.level.save()
-                    with open(self.level_name, "x" if new else "w") as file:
-                        file.write(save_data)
+                    self.save_level()
                     imgui.close_current_popup()
 
             except Exception as e:
@@ -233,10 +263,11 @@ and while placing a box, it will let you place a clone of said box.""")
                         self.menuing = None
                     continue
                 imgui.set_next_window_size(130, 157, condition=imgui.APPEARING)
+                block.window_size = (130 / block.width)
                 imgui.set_next_window_size(block.window_size*block.width,block.window_size*block.height+27, condition=not imgui.APPEARING)
                 imgui.set_next_window_position(
                     (30 + int(block.id) * 150) % (imgui.get_io().display_size.x - 150),
-                    50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*50,
+                    50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*200,
                     condition=imgui.APPEARING
                 )
                 if imgui.begin(str(block.id) + " : " + self.level.name):
@@ -249,7 +280,7 @@ and while placing a box, it will let you place a clone of said box.""")
                         w += 8
                         block.draw(draw_list, x, y, w, h, self.level, -1, block.fliph)
                         pos = imgui.get_mouse_position()
-                        px = int(math.ceil((pos.x - x) / (w / block.width)))
+                        px = int((pos.x - x) / (w / block.width))
                         py = block.height - int(math.ceil((pos.y - y) / max((h / block.height),0.01)))
                         shift = imgui.get_io().key_shift
                         if imgui.is_window_hovered():
@@ -304,8 +335,7 @@ and while placing a box, it will let you place a clone of said box.""")
                             else:
                                 self.menuing = None
                     imgui.end_child()
-                    
-                    if block.window_size != imgui.get_window_width()/block.width:
+                    if type(block) == Block and block.window_size != imgui.get_window_width()/block.width:
                         block.window_size = imgui.get_window_width()/block.width
                 imgui.end()
 
@@ -439,8 +469,12 @@ and while placing a box, it will let you place a clone of said box.""")
             if self.cursor_held:
                 x, y = imgui.get_mouse_position()
                 self.cursor_held.draw(overlay_draw_list, x - 10, y - 10, 20, 20, self.level, 0, False)
-
         if self.error:
-            imgui.text_ansi(self.error)
+            imgui.open_popup('Debug')
+            if imgui.begin_popup('Debug'):
+                imgui.text_ansi(self.error)
+                imgui.end_popup()
+            if imgui.is_mouse_clicked():
+                self.error = None
 
         return True

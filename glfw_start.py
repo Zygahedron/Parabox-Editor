@@ -82,7 +82,6 @@ def main():
             continue
 
         imgui.new_frame()
-
         if not editor.main_loop(keyboard):
             break
 

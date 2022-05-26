@@ -1,8 +1,10 @@
+import os
 import colorsys, time, imgui
 from math import cos, pi, floor
 from re import S
 from random import random
 from collections import OrderedDict
+from pathlib import Path
 
 def to_bool(val):
     try:
@@ -89,11 +91,12 @@ special_effects = {
     2: 'Right flip effect',
     3: 'Left flip effect',
     8: 'Draw symbol for Inner Push / Extrude / Priority being different than the default',
-    11: 'Don\'t show box in ASCII grid mode',
-    12: 'Don\'t draw border when in Infinite Exit/Enter void'
+    9: 'Leave sides open to void when floating in space',
+    11: 'Don\'t show box in ASCII/grid display mode',
+    12: 'Focus camera on this block when multiple players are in the level'
 }
 
-floor_types = ['None','Button','PlayerButton','FastTravel','Info']
+floor_types = ['None','Button','PlayerButton','FastTravel','Info','DemoEnd','Break','Portal','Gallery','Show','Smile']
 
 class Block:
     def __init__(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect):
@@ -298,7 +301,7 @@ class Block:
             return Ref(0,0,level.next_free,1,0,0,1,0,self.id,0,0,0,0,0,0)
 
 class Ref:
-    def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect):
+    def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name = None):
         self.x = int(x)
         self.y = int(y)
         self.id = int(id)
@@ -316,15 +319,33 @@ class Ref:
         self.specialeffect = int(specialeffect)
         self.blinkoffset = random()*26
         self.parent = None
+        self.area_name = area_name
 
     def __repr__(self):
         return f'<Reference of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id}>" if self.parent is not None else None}>'
 
     def copy(self, held=False): # return non-exit copy
-        return Ref(0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+        return Ref(0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, self.area_name)
 
     def save(self, indent, saved_blocks):
-        line = ["Ref", int(self.x), int(self.y), int(self.id), int(self.exitblock), int(self.infexit), int(self.infexitnum), int(self.infenter), int(self.infenternum), int(self.infenterid), int(self.player), int(self.possessable), int(self.playerorder), int(self.fliph), int(self.floatinspace), int(self.specialeffect)]
+        line = ["Ref", 
+            int(self.x), 
+            int(self.y), 
+            int(self.id), 
+            int(self.exitblock), 
+            int(self.infexit), 
+            int(self.infexitnum), 
+            int(self.infenter), 
+            int(self.infenternum), 
+            int(self.infenterid), 
+            int(self.player), 
+            int(self.possessable), 
+            int(self.playerorder), 
+            int(self.fliph), 
+            int(self.floatinspace), 
+            int(self.specialeffect),
+            self.area_name.replace(' ','_') if self.area_name is not None else ''
+        ]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
@@ -418,11 +439,16 @@ class Ref:
         changed, value = imgui.combo("Special Effect", list(special_effects.keys()).index(self.specialeffect), list(special_effects.values()))
         if changed:
             self.specialeffect = list(special_effects.keys())[value]
+        if level.is_hub:
+            imgui.separator()
+            changed, value = imgui.input_text("Area Name", self.area_name if self.area_name is not None else '', 256)
+            if changed:
+                self.area_name = value if value != '' else None
 
 class Wall:
     id = None
 
-    def __init__(self, x, y, player, possessable, playerorder):
+    def __init__(self, x, y, player, possessable, playerorder, condition = None):
         self.x = int(x)
         self.y = int(y)
         self.player = int(player)
@@ -430,18 +456,20 @@ class Wall:
         self.possessable = to_bool(possessable)
         self.playerorder = to_bool(playerorder)
         self.parent = None
+        self.condition = condition
 
     def __repr__(self):
         return f'<Wall at ({self.x},{self.y}) inside of {self.parent}>'
 
     def save(self, indent, saved_blocks):
-        line = ["Wall", int(self.x), int(self.y), int(self.player), int(self.possessable), int(self.playerorder)]
+        line = ["Wall", int(self.x), int(self.y), int(self.player), int(self.possessable), int(self.playerorder), ('' if self.condition is None else self.condition)]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
     def copy(self, held=False):
-        return Wall(0, 0, self.player, self.possessable, self.playerorder)
+        return Wall(0, 0, self.player, self.possessable, self.playerorder, self.condition)
     
     def draw(self, draw_list, x, y, width, height, level, depth, flip):
+        self.parent = self.parent if type(self.parent) is not tuple else self.parent[0]
         left = not self.parent or self.x != 0 and type(self.parent.get_child(self.x - 1, self.y)) != Wall
         right = not self.parent or self.x != self.parent.width-1 and type(self.parent.get_child(self.x + 1, self.y)) != Wall
         top = not self.parent or self.y != self.parent.height-1 and type(self.parent.get_child(self.x, self.y + 1)) != Wall
@@ -491,6 +519,19 @@ class Wall:
         changed, value = imgui.checkbox("Possessable", self.possessable)
         if changed:
             self.possessable = value
+        if level.is_hub:
+            self.condition = self.condition if self.condition is not None else '_'
+            imgui.separator()
+            changed, value = imgui.input_text("Removal Condition", self.condition, 256)
+            if changed:
+                self.condition = value if value != '_' else None
+            if imgui.core.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.text('After what level should this wall be removed?')
+                imgui.text('None: "_"')
+                imgui.end_tooltip()
+        else:
+            self.condition = self.condition if self.condition != '_' else None
 
 fast_travel_polyline = [
     (0.4, 0.35), (0.5, 0.25), (0.6, 0.35)
@@ -502,7 +543,10 @@ class Floor:
         self.x = int(x)
         self.y = int(y)
         self.type = floor_type
-        self.floor_index = floor_types.index(floor_type)
+        try:
+            self.floor_index = floor_types.index(floor_type)
+        except ValueError:
+            self.floor_index = -1
         self.extra_data = extra_data
         self.parent = None
 
@@ -515,7 +559,7 @@ class Floor:
     def save(self, indent, saved_blocks):
         line = ["Floor", int(self.x), int(self.y), self.type]
         if self.extra_data and self.extra_data != "":
-            line.append(self.extra_data.replace(" ","_").replace('\n','\\n'))
+            line.append(str(self.extra_data).replace(" ","_").replace('\n','\\n'))
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
     def draw(self, draw_list, x, y, width, height, level, depth, flip):
@@ -538,7 +582,9 @@ class Floor:
         elif self.type == "Info":
             draw_list.add_rect_filled(x + 0.45*width, y + 0.45*height, x + 0.55*width, y + 0.8*height, color)
             draw_list.add_circle_filled(x + 0.5*width, y + 0.3*height, min(width,height)/15, color)
-
+        elif self.type == "Portal":
+            draw_list.add_rect_filled(x + 0.3*width, y + 0.2*height, x + 0.4*width, y + 0.8*height, color)
+            draw_list.add_rect_filled(x + 0.3*width, y + 0.8*height, x + 0.7*width, y + 0.7*height, color)
         if border:
             draw_list.add_rect(x + width/10, y + height/10, x + width*9/10, y + height*9/10, color, thickness=min(width,height)/20)
 
@@ -549,10 +595,17 @@ class Floor:
             self.floor_index = value
         if self.type == "None":
             self.parent.remove_child(self)
-        changed, value = imgui.input_text_multiline("Extra Data", self.extra_data, 2048)
+        if self.type == 'Info':
+            changed, value = imgui.input_text_multiline("Info Text", self.extra_data, 2048)
+        elif self.type == 'Portal':
+            if not level.is_hub:
+                imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 0.2, 0.2)
+                imgui.text('Non-hub levels will not load if they have a Portal floor in them!')
+                imgui.pop_style_color(1)
+            else:
+                changed, value = imgui.input_text("Level Name", self.extra_data, 256)
         if changed:
             self.extra_data = value
-    
     def empty_menu(parent, px, py):
         changed, value = imgui.combo("Floor Type",0,floor_types)
         if changed:
@@ -590,13 +643,21 @@ Palette.pals = OrderedDict({
 })
 
 class Level:
-    def __init__(self, name, data):
+    def __init__(self, name, data, level_number = -1, hub_parent = False, difficulty: int = 0, possess_fx = False, credits = ''):
         self.name = name
+        self.is_hub = name == 'hub.txt'
+        self.hub_parent = hub_parent
+        self.level_number = level_number
+        self.difficulty = int(difficulty)
+        self.possess_fx = possess_fx
         self.roots = []
         self.blocks = {}
         self.next_free = 0
-        [metadata, data] = data.split("\n#\n")
-
+        self.credits = credits
+        try:
+            [metadata, data] = data.split("\n#\n")
+        except ValueError:
+            raise Exception('Selected file isn\'t a level!')
         metadata = [e.split(" ", 1) for e in metadata.split("\n")]
         self.metadata = {e[0]: e[1] for e in metadata}
         if not "attempt_order" in self.metadata: self.metadata["attempt_order"] = "push,enter,eat,possess"
@@ -648,8 +709,12 @@ class Level:
                     else:
                         print("duplicate block with id " + id)
             elif block_type == "Ref":
-                [x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
-                ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect)
+                [x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *rest] = args
+                if self.is_hub:
+                    area_name = rest[0].replace('_',' ')
+                else:
+                    area_name = None
+                ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name)
                 if int(exitblock) and not int(infenter):
                     ref_exits[int(id)] = ref
                 if parent:
@@ -658,8 +723,12 @@ class Level:
                     self.roots.append(ref)
                 last_block = ref
             elif block_type == "Wall":
-                [x, y, player, possessable, playerorder, *_] = args
-                wall = Wall(x, y, player, possessable, playerorder)
+                [x, y, player, possessable, playerorder, *extra] = args
+                if self.is_hub:
+                    condition = extra[0]
+                else:
+                    condition = None
+                wall = Wall(x, y, player, possessable, playerorder, condition)
                 if parent:
                     parent.place_child(int(x), int(y), wall)
                 else:
@@ -667,13 +736,12 @@ class Level:
                 last_block = wall
             elif block_type == "Floor":
                 [x, y, floor_type, *rest] = args
-                floor = Floor(x, y, floor_type, " ".join(rest))
+                floor = Floor(x, y, floor_type, " ".join(rest).replace("_"," ").replace('\\n','\n'))
                 if parent:
                     parent.place_child(int(x), int(y), floor)
                 else:
                     print("Discarding floor at root level")
                 last_block = floor
-                
             else:
                 pass
         
@@ -703,18 +771,24 @@ class Level:
         to_save = list(self.blocks.values())
         saved_blocks = []
         seen = []
+        areas = []
         while len(to_save):
             current = to_save[0]
             seen.append(current)
             while current.parent and not (current.parent in seen):
                 current = current.parent
                 seen.append(current)
+            if self.is_hub:
+                if os.path.exists(f'{Path(self.name).stem}.png'):
+                    os.remove(f'{Path(self.name).stem}.png')
+                for child in current.children:
+                    if type(child) == Ref:
+                        areas.append(child.area_name)
             data += current.save(0, saved_blocks)
             for block in saved_blocks:
                 if block in to_save:
                     to_save.remove(block)
-
-        return data
+        return data, self.is_hub, self.hub_parent, self.level_number, areas, self.credits, int(self.possess_fx), self.difficulty
 
     def edit_menu(self):
         changed, value = imgui.combo("Palette", self.metadata["custom_level_palette"] + 1, [p.name for p in Palette.pals.values()])
@@ -765,3 +839,26 @@ class Level:
                 if imgui.checkbox(item,order[i][1])[0]:
                     order[i][1] = True
             imgui.end_menu()
+        imgui.separator()
+        if not self.hub_parent:
+            changed, value = imgui.checkbox("Hub Level", self.is_hub)
+            if changed:
+                self.is_hub = value
+        if not self.is_hub:
+            changed, value = imgui.checkbox("Has Parent Hub", self.hub_parent)
+            if changed:
+                self.hub_parent = value
+            if self.hub_parent:
+                changed, value = imgui.input_int("Level Number", self.level_number)
+                if changed:
+                    self.level_number = value
+                changed, value = imgui.combo("Border", self.difficulty, ['Normal','Hard','Special'])
+                if changed:
+                    self.difficulty = value
+                changed, value = imgui.checkbox("Possess Effect on Start", self.possess_fx)
+                if changed:
+                    self.possess_fx = value
+        else:
+            changed, value = imgui.input_text_multiline("Credits", self.credits,100000)
+            if changed:
+                self.credits = value
