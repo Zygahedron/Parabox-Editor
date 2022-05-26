@@ -325,6 +325,7 @@ class Ref:
         self.blinkoffset = random()*26
         self.parent = None
         self.area_name = area_name
+        self.area_music = 0
 
     def __repr__(self):
         return f'<Reference of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id}>" if self.parent is not None else None}>'
@@ -449,6 +450,9 @@ class Ref:
             changed, value = imgui.input_text("Area Name", self.area_name if self.area_name is not None else '', 256)
             if changed:
                 self.area_name = value if value != '' else None
+            changed, value = imgui.combo("Area Music",  self.area_music + 1, ["None", "Intro", "Enter", "Empty", "Eat", "Reference", "Center", "Clone", "Transfer", "Open", "Flip", "Cycle", "Swap", "Player", "Possess", "Wall", "Infinite Exit", "Infinite Enter", "Multi Infinite", "Reception", "Appendix", "Pause (buggy)", "Credits"])
+            if changed:
+                self.area_music = value - 1
 
 class Wall:
     id = None
@@ -788,7 +792,7 @@ class Level:
                     os.remove(f'{Path(self.name).stem}.png')
                 for child in current.children:
                     if type(child) == Ref:
-                        areas.append(child.area_name)
+                        areas.append([child.area_name, child.area_music])
             data += current.save(0, saved_blocks)
             for block in saved_blocks:
                 if block in to_save:

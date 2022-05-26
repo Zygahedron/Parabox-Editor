@@ -42,23 +42,24 @@ class Editor:
         self.code_check = []
         self.did_code = False
         self.error = None
+        self.open_warn = False
 
         imgui.get_io().ini_file_name = b""
 
     def save_level(self):
         save_data, is_hub, parent, level_number, areas, credits, possess_fx, difficulty = self.level.save()
-        print(areas)
         with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
-            print(save_data)
             file.write(save_data)
         if is_hub:
             with open('credits.txt','x' if not os.path.exists('credits.txt') else 'w') as f:
                 f.write(credits)
             with open('area_data.txt','x' if not os.path.exists('area_data.txt') else 'w') as f:
-                f.write('\n'.join([f'{name.replace(" ","_")} 0' if name is not None else '' for name in areas]))
+                f.write('\n'.join([f'{name.replace(" ","_")} {music}' if name is not None else '' for name, music in areas]))
             if not os.path.exists('save0.txt'):
                 with open('save0.txt','x'):
                     pass
+            if len(areas) == 0:
+                self.open_warn = True
         elif parent:
             if not os.path.exists('puzzle_data.txt'):
                 with open('puzzle_data.txt','x'):
@@ -140,6 +141,9 @@ and while placing a box, it will let you place a clone of said box.""")
                 self.code_check = []
             else:
                 self.code_check = self.code_check[1:]
+        if self.open_warn:
+            self.open_warn = False
+            imgui.open_popup('save.hub.no_area_warn')
         if imgui.begin_popup("secret.gui"):
             imgui.push_style_color(imgui.COLOR_TEXT, .702, 0, .42)
             imgui.text("""+------------------------+
@@ -162,7 +166,20 @@ and while placing a box, it will let you place a clone of said box.""")
             imgui.pop_style_color(1)
             imgui.text('Editor made with love by Zygan#0404\nInput the code again to turn off rainbow mode.')
             imgui.end_popup()
-
+        if imgui.begin_popup('save.hub.no_area_warn'):
+            imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 1.0, 0.0)
+            imgui.text('   / \   ')
+            imgui.text('  / | \  ')
+            imgui.text(' /  .  \\ ')
+            imgui.text('/_______\\')
+            imgui.pop_style_color(1)
+            imgui.text('')
+            imgui.text('This hub is invalid because it has no area data.')
+            imgui.text('Add area data like this:')
+            imgui.text('1. Make a new block (Preferably with ID of -1 and/or with Special Effect 11)')
+            imgui.text('2. Add a reference to every area in your hub to this block')
+            imgui.text('3. Edit each reference to add the area name and music')
+            imgui.end_popup()
         if menu_choice == "file.open":
             imgui.open_popup("file.open")
             self.file_choice = 0
