@@ -145,18 +145,20 @@ class Block:
         return Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
 
     def make_ref(self, level, new=True):
-        return Ref(level, 0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, "-1", self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+        return Ref(level, 0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, -1, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
     
-    def save(self, indent, saved_blocks):
+    def save(self, level, indent, saved_blocks):
         if self in saved_blocks and not self.fillwithwalls:
-            return self.make_ref(False).save(indent, saved_blocks)
+            ref = self.make_ref(level, False).save(level, indent, saved_blocks)
+            self.exit = None
+            return ref
         else:
             saved_blocks.append(self)
         line = ["Block", int(self.x), int(self.y), int(self.id), int(self.width), int(self.height), f"{self.hue:1.3g}", f"{self.sat:1.3g}", f"{self.val:1.3g}", f"{self.zoomfactor:1.3g}", int(self.fillwithwalls), int(self.player), int(self.possessable), int(self.playerorder), int(self.fliph), int(self.floatinspace), int(self.specialeffect)]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         for child in self.children:
             if 0 <= child.x < self.width and 0 <= child.y < self.height:
-                block += child.save(indent + 1, saved_blocks)
+                block += child.save(level, indent + 1, saved_blocks)
             else:
                 pass # discard out of bounds children on save
         return block
@@ -200,7 +202,7 @@ class Block:
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
-        if min(width,height) > 15 and depth >= 0:
+        if min(width,height) > 15 and depth > -1:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
     def color(self, level, brightness=1):
@@ -350,7 +352,7 @@ class Ref:
     def copy(self, level, held=False): # return non-exit copy
         return Ref(level, 0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, self.area_name)
 
-    def save(self, indent, saved_blocks):
+    def save(self, level, indent, saved_blocks):
         line = ["Ref", 
             int(self.x), 
             int(self.y), 
@@ -497,7 +499,7 @@ class Wall:
     def __repr__(self):
         return f'<Wall at ({self.x},{self.y}) inside of {self.parent}>'
 
-    def save(self, indent, saved_blocks):
+    def save(self, level, indent, saved_blocks):
         line = ["Wall", int(self.x), int(self.y), int(self.player), int(self.possessable), int(self.playerorder), ('' if self.condition is None else self.condition)]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
@@ -592,7 +594,7 @@ class Floor:
     def copy(self, level, held=False):
         return Floor(level, 0, 0, self.type, self.extra_data)
 
-    def save(self, indent, saved_blocks):
+    def save(self, level, indent, saved_blocks):
         line = ["Floor", int(self.x), int(self.y), self.type]
         if self.extra_data and self.extra_data != "":
             line.append(str(self.extra_data).replace(" ","_").replace('\n','\\n'))
@@ -633,6 +635,8 @@ class Floor:
             self.parent.remove_child(self)
         if self.type == 'Info':
             changed, value = imgui.input_text_multiline("Info Text", self.extra_data, 2048)
+            if changed:
+                self.extra_data = value
         elif self.type == 'Portal':
             if not level.is_hub:
                 imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 0.2, 0.2)
@@ -640,8 +644,8 @@ class Floor:
                 imgui.pop_style_color(1)
             else:
                 changed, value = imgui.input_text("Level Name", self.extra_data, 256)
-        if changed:
-            self.extra_data = value
+            if changed:
+                self.extra_data = value
     def empty_menu(level, parent, px, py):
         changed, value = imgui.combo("Floor Type",0,floor_types)
         if changed:
@@ -818,7 +822,7 @@ class Level:
                 for child in current.children:
                     if type(child) == Ref:
                         areas.append([child.area_name, child.area_music])
-            data += current.save(0, saved_blocks)
+            data += current.save(self, 0, saved_blocks)
             for block in saved_blocks:
                 if block in to_save:
                     to_save.remove(block)

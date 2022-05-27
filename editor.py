@@ -371,10 +371,10 @@ and while placing a box, it will let you place a clone of said box.""")
 
                     i = 0
                     for sample in self.samples:
-                        sample.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0, False)
+                        sample.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, -0.5, False)
                         i += 1
                     for block in [self.level.blocks[i] for i in sorted(self.level.blocks.keys())]:
-                        block.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0, block.fliph)
+                        block.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, -0.5, block.fliph)
                         i += 1
                     px, py = x + (i % palette_width)*50, y + int(i / palette_width)*50
                     draw_list.add_rect(px, py, px + 40, py + 40, 0x7fffffff, thickness=2)
