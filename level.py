@@ -106,7 +106,7 @@ special_effects = {
 floor_types = ['None','Button','PlayerButton','FastTravel','Info','DemoEnd','Break','Portal','Gallery','Show','Smile']
 
 class Block:
-    def __init__(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect):
+    def __init__(self, level, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect):
         self.x = int(x)
         self.y = int(y)
         self.id = int(id)
@@ -127,24 +127,25 @@ class Block:
         self.parent = None
         self.children = []
         self.window_size = 130
+        self.exit = None
 
     def __repr__(self):
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
 
-    def copy(self, held=False):
-        if self.fillwithwalls: return self.full_copy() # duplicate solid blocks
+    def copy(self, level, held=False):
+        if self.fillwithwalls: return self.full_copy(level) # duplicate solid blocks
         if (held or self.parent): # if I already exist somewhere:
             # return ref to self
-            return self.make_ref()
+            return self.make_ref(level)
         else: # if I don't exist anywhere:
             # no need to copy
             return self
 
-    def full_copy(self, id=None):
-        return Block(0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+    def full_copy(self, level, id=None):
+        return Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
 
-    def make_ref(self, new=True):
-        return Ref(0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, "-1", self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+    def make_ref(self, level, new=True):
+        return Ref(level, 0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, "-1", self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
     
     def save(self, indent, saved_blocks):
         if self in saved_blocks and not self.fillwithwalls:
@@ -178,6 +179,17 @@ class Block:
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
 
         self.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
+
+        if self.exit and depth > -1:
+            if self.exit.infenter:
+                w = width / (self.exit.infenternum + 1) * 1.3
+                h = height / (self.exit.infenternum + 1)
+                h2 = h * 1.3
+                for i in range(self.exit.infenternum + 1):
+                    draw_epsilon(draw_list, x + width/2 - w/2, y + (h - h2)/2 + i*h, w, h2)
+            draw_list.add_rect(x, y, x + width, y + height, 0xff3f3f3f, thickness=min(width,height)/20)
+            draw_list.add_rect_filled(x, y, x + width, y + height, 0x3fffffff)
+
 
         if self.fliph and depth >= 0:
             draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
@@ -296,21 +308,26 @@ class Block:
         self.menu(level)
         imgui.separator()
         if imgui.selectable('Create Clone')[0]:
-            return Ref(0,0,self.id,0,0,0,0,0,0,0,0,0,0,0,0)
+            return Ref(level, 0,0,self.id,0,0,0,0,0,0,0,0,0,0,0,0)
         if imgui.selectable('Create Infinite Exit')[0]:
-            return Ref(0,0,self.id,1,1,0,0,0,0,0,0,0,0,0,0)
+            return Ref(level, 0,0,self.id,0,1,0,0,0,0,0,0,0,0,0,0)
         if imgui.selectable('Create Infinite Enter')[0]:
             while level.next_free in level.blocks:
                 level.next_free += 1
-            level.blocks[level.next_free] = Block(0,0,level.next_free,5,5,self.hue,self.sat,self.val,1,0,0,0,0,0,0,0)
-            return Ref(0,0,level.next_free,1,0,0,1,0,self.id,0,0,0,0,0,0)
+            level.blocks[level.next_free] = Block(level,0,0,level.next_free,5,5,self.hue,self.sat,self.val,1,0,0,0,0,0,0,0)
+            return Ref(level,0,0,level.next_free,1,0,0,1,0,self.id,0,0,0,0,0,0)
 
 class Ref:
-    def __init__(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name = None):
+    def __init__(self, level, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name = None):
         self.x = int(x)
         self.y = int(y)
         self.id = int(id)
         self.exitblock = to_bool(exitblock)
+        if self.exitblock:
+            block = level.blocks[self.id]
+            if block.exit:
+                block.exit.exitblock = False
+            block.exit = self
         self.infexit = to_bool(infexit)
         self.infexitnum = int(infexitnum)
         self.infenter = to_bool(infenter)
@@ -330,8 +347,8 @@ class Ref:
     def __repr__(self):
         return f'<Reference of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id}>" if self.parent is not None else None}>'
 
-    def copy(self, held=False): # return non-exit copy
-        return Ref(0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, self.area_name)
+    def copy(self, level, held=False): # return non-exit copy
+        return Ref(level, 0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, self.area_name)
 
     def save(self, indent, saved_blocks):
         line = ["Ref", 
@@ -358,6 +375,7 @@ class Ref:
 
         if self.id in level.blocks:
             orig = level.blocks[self.id]
+            exit = orig.exit
             draw_list.add_rect_filled(x, y, x+width, y+height, orig.color(level, 1 if orig.fillwithwalls else 0.5))
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
             orig.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
@@ -377,11 +395,12 @@ class Ref:
                 for i in range(self.infexitnum + 1):
                     draw_infinity(draw_list, x + width/2 - w/2, y + (h - h2)/2 + i*h, w, h2)
         else:
-            if self.infenter:
-                w = width / (self.infenternum + 1) * 1.3
-                h = height / (self.infenternum + 1)
+            if (self.exitblock and self.infenter) or (exit and exit.infenter):
+                infenternum = self.infenternum if self.exitblock else exit.infenternum
+                w = width / (infenternum + 1) * 1.3
+                h = height / (infenternum + 1)
                 h2 = h * 1.3
-                for i in range(self.infenternum + 1):
+                for i in range(infenternum + 1):
                     draw_epsilon(draw_list, x + width/2 - w/2, y + (h - h2)/2 + i*h, w, h2)
             draw_list.add_rect(x, y, x + width, y + height, 0xff3f3f3f, thickness=min(width,height)/20)
             if not self.exitblock:
@@ -406,7 +425,15 @@ class Ref:
 
         changed, value = imgui.checkbox("Exit Block", to_bool(self.exitblock))
         if changed:
-            self.exitblock = int(value)
+            orig = level.blocks[self.id]
+            if orig:
+                if value:
+                    if orig.exit:
+                        orig.exit.exitblock = False
+                    orig.exit = self
+                elif orig.exit == self:
+                    orig.exit = None
+            self.exitblock = value
         changed, value = imgui.combo("Reference Type", 2 if not (self.infexit or self.infenter) else int(self.infenter), ['Infinite Exit','Infinite Enter','Clone'])
         if changed:
             self.infexit = int(value == 0)
@@ -457,7 +484,7 @@ class Ref:
 class Wall:
     id = None
 
-    def __init__(self, x, y, player, possessable, playerorder, condition = None):
+    def __init__(self, level, x, y, player, possessable, playerorder, condition = None):
         self.x = int(x)
         self.y = int(y)
         self.player = int(player)
@@ -474,8 +501,8 @@ class Wall:
         line = ["Wall", int(self.x), int(self.y), int(self.player), int(self.possessable), int(self.playerorder), ('' if self.condition is None else self.condition)]
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
-    def copy(self, held=False):
-        return Wall(0, 0, self.player, self.possessable, self.playerorder, self.condition)
+    def copy(self, level, held=False):
+        return Wall(level, 0, 0, self.player, self.possessable, self.playerorder, self.condition)
     
     def draw(self, draw_list, x, y, width, height, level, depth, flip):
         self.parent = self.parent if type(self.parent) is not tuple else self.parent[0]
@@ -548,7 +575,7 @@ fast_travel_polyline = [
 class Floor:
     id = None
 
-    def __init__(self, x, y, floor_type, extra_data):
+    def __init__(self, level, x, y, floor_type, extra_data):
         self.x = int(x)
         self.y = int(y)
         self.type = floor_type
@@ -562,8 +589,8 @@ class Floor:
     def __repr__(self):
         return f'<Floor of type {self.type} at ({self.x},{self.y}) inside of {self.parent}>'
 
-    def copy(self, held=False):
-        return Floor(0, 0, self.type, self.extra_data)
+    def copy(self, level, held=False):
+        return Floor(level, 0, 0, self.type, self.extra_data)
 
     def save(self, indent, saved_blocks):
         line = ["Floor", int(self.x), int(self.y), self.type]
@@ -615,11 +642,11 @@ class Floor:
                 changed, value = imgui.input_text("Level Name", self.extra_data, 256)
         if changed:
             self.extra_data = value
-    def empty_menu(parent, px, py):
+    def empty_menu(level, parent, px, py):
         changed, value = imgui.combo("Floor Type",0,floor_types)
         if changed:
             if floor_types[value] != "None":
-                parent.place_child(px, py, Floor(px, py, floor_types[value], ""))
+                parent.place_child(px, py, Floor(level, px, py, floor_types[value], ""))
 
 class Palette:
     def __init__(self, name, colors):
@@ -705,7 +732,7 @@ class Level:
             block_type = args.pop(0)
             if block_type == "Block":
                 [x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
-                block = Block(x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect)
+                block = Block(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect)
                 block.parent = parent
                 if parent:
                     parent.place_child(int(x), int(y), block)
@@ -723,7 +750,7 @@ class Level:
                     area_name = rest[0].replace('_',' ')
                 else:
                     area_name = None
-                ref = Ref(x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name)
+                ref = Ref(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name)
                 if int(exitblock) and not int(infenter):
                     ref_exits[int(id)] = ref
                 if parent:
@@ -737,7 +764,7 @@ class Level:
                     condition = extra[0]
                 else:
                     condition = None
-                wall = Wall(x, y, player, possessable, playerorder, condition)
+                wall = Wall(self, x, y, player, possessable, playerorder, condition)
                 if parent:
                     parent.place_child(int(x), int(y), wall)
                 else:
@@ -745,7 +772,7 @@ class Level:
                 last_block = wall
             elif block_type == "Floor":
                 [x, y, floor_type, *rest] = args
-                floor = Floor(x, y, floor_type, " ".join(rest).replace("_"," ").replace('\\n','\n'))
+                floor = Floor(self, x, y, floor_type, " ".join(rest).replace("_"," ").replace('\\n','\n'))
                 if parent:
                     parent.place_child(int(x), int(y), floor)
                 else:
@@ -756,10 +783,8 @@ class Level:
         
         # replace exitable refs with original blocks
         for id, ref in ref_exits.items():
-            parent = ref.parent
-            if parent is not None:
-                parent.remove_child(ref)
-                parent.place_child(ref.x, ref.y, self.blocks[id])
+            block = self.blocks[id]
+            block.exit = ref
 
     def save(self):
         data = "version 4\n"
