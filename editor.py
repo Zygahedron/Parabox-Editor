@@ -20,10 +20,10 @@ class Editor:
         self.help_open = False
         self.new_size = [5,5]
         self.samples = [
-            Wall(0, 0, 0, 0, 0, "_"),
-            Floor(0, 0, "Button", ""),
-            Block(0, 0, "-1", 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
-            Block(0, 0, "-1", 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
+            Wall(None, 0, 0, 0, 0, 0, "_"),
+            Floor(None, 0, 0, "Button", ""),
+            Block(None, 0, 0, "-1", 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
+            Block(None, 0, 0, "-1", 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
         ]
         
         self.levels_folder = ""
@@ -305,7 +305,7 @@ and while placing a box, it will let you place a clone of said box.""")
                                 last_held = self.cursor_held
                                 if self.cursor_held:
                                     if shift:
-                                        to_place = self.cursor_held.copy(True)
+                                        to_place = self.cursor_held.copy(self.level, True)
                                     else:
                                         to_place = self.cursor_held
                                         self.cursor_held = None
@@ -345,7 +345,7 @@ and while placing a box, it will let you place a clone of said box.""")
                                 if not has_floor:
                                     if not first:
                                         imgui.separator()
-                                    Floor.empty_menu(parent, px, py)
+                                    Floor.empty_menu(self.level, parent, px, py)
                                 imgui.end_popup()
                             else:
                                 self.menuing = None
@@ -371,10 +371,10 @@ and while placing a box, it will let you place a clone of said box.""")
 
                     i = 0
                     for sample in self.samples:
-                        sample.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0, False)
+                        sample.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, -0.5, False)
                         i += 1
                     for block in [self.level.blocks[i] for i in sorted(self.level.blocks.keys())]:
-                        block.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, 0, block.fliph)
+                        block.draw(draw_list, x + (i % palette_width)*50, y + int(i / palette_width)*50, 40, 40, self.level, -0.5, block.fliph)
                         i += 1
                     px, py = x + (i % palette_width)*50, y + int(i / palette_width)*50
                     draw_list.add_rect(px, py, px + 40, py + 40, 0x7fffffff, thickness=2)
@@ -393,15 +393,15 @@ and while placing a box, it will let you place a clone of said box.""")
                             else:
                                 if i >= 0:
                                     if i < len(self.samples):
-                                        self.cursor_held = self.samples[i].copy()
+                                        self.cursor_held = self.samples[i].copy(self.level)
                                         self.clicked = self.hovered
                                     elif i < len(self.samples) + len(self.level.blocks):
-                                        self.cursor_held = sorted(self.level.blocks.items())[i - len(self.samples)][1].copy()
+                                        self.cursor_held = sorted(self.level.blocks.items())[i - len(self.samples)][1].copy(self.level)
                                         self.clicked = self.hovered
                                     elif i == len(self.samples) + len(self.level.blocks):
                                         while self.level.next_free in self.level.blocks:
                                             self.level.next_free += 1
-                                        self.level.blocks[self.level.next_free] = Block(0, 0, self.level.next_free, 5, 5, 0.6, 0.8, 1, 1, 0, 0, 0, 0, 0, 0, 0)
+                                        self.level.blocks[self.level.next_free] = Block(self.level, 0, 0, self.level.next_free, 5, 5, 0.6, 0.8, 1, 1, 0, 0, 0, 0, 0, 0, 0)
 
                     if (self.menuing or self.hovered or [0])[0] == None:
                         if imgui.begin_popup_context_window():
@@ -411,19 +411,19 @@ and while placing a box, it will let you place a clone of said box.""")
                             if i < len(self.samples):
                                 if type(self.samples[i]) == Wall:
                                     if imgui.selectable("Normal Wall")[0]:
-                                        self.cursor_held = self.samples[i].copy()
+                                        self.cursor_held = self.samples[i].copy(self.level)
                                     if imgui.selectable("Possessable Wall")[0]:
-                                        self.cursor_held = self.samples[i].copy()
+                                        self.cursor_held = self.samples[i].copy(self.level)
                                         self.cursor_held.possessable = 1
                                     if imgui.selectable("Player Wall")[0]:
-                                        self.cursor_held = self.samples[i].copy()
+                                        self.cursor_held = self.samples[i].copy(self.level)
                                         self.cursor_held.player = 1
                                         self.cursor_held.possessable = 1
                                 elif type(self.samples[i]) == Floor:
                                     if imgui.selectable("Normal Button")[0]:
-                                        self.cursor_held = self.samples[i].copy()
+                                        self.cursor_held = self.samples[i].copy(self.level)
                                     if imgui.selectable("Player Button")[0]:
-                                        self.cursor_held = self.samples[i].copy()
+                                        self.cursor_held = self.samples[i].copy(self.level)
                                         self.cursor_held.type = "PlayerButton"
                                 elif self.samples[i].player:
                                     pass
@@ -432,7 +432,7 @@ and while placing a box, it will let you place a clone of said box.""")
                                         h, s, v = Palette.pals[self.level.metadata["custom_level_palette"]].get_color(color)
                                         r, g, b = colorsys.hsv_to_rgb(h, s, v)
                                         if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
-                                            self.cursor_held = self.samples[i].copy()
+                                            self.cursor_held = self.samples[i].copy(self.level)
                                             self.cursor_held.hue, self.cursor_held.sat, self.cursor_held.val = color
                                             self.clicked = self.hovered
                                             self.menuing = None
@@ -447,7 +447,7 @@ and while placing a box, it will let you place a clone of said box.""")
                                 if imgui.selectable("Duplicate Block")[0]:
                                     while self.level.next_free in self.level.blocks:
                                         self.level.next_free += 1
-                                    self.level.blocks[self.level.next_free] = block.full_copy(self.level.next_free)
+                                    self.level.blocks[self.level.next_free] = block.full_copy(self.level, self.level.next_free)
                                 if imgui.selectable("Delete Block")[0]:
                                     while len(block.children):
                                         block.remove_child(block.children[0])
@@ -471,7 +471,7 @@ and while placing a box, it will let you place a clone of said box.""")
                                     h, s, v = Palette.pals[self.level.metadata["custom_level_palette"]].get_color(color)
                                     r, g, b = colorsys.hsv_to_rgb(h, s, v)
                                     if imgui.color_button(str(color), r, g, b, 1, width=20, height=20):
-                                        self.level.blocks[self.level.next_free] = Block(0, 0, self.level.next_free, *self.new_size, color[0], color[1], color[2], 1, any([n==0 for n in self.new_size]), 0, 0, 0, 0, 0, 0)
+                                        self.level.blocks[self.level.next_free] = Block(self.level, 0, 0, self.level.next_free, *self.new_size, color[0], color[1], color[2], 1, any([n==0 for n in self.new_size]), 0, 0, 0, 0, 0, 0)
                                         self.menuing = None
                                     imgui.same_line()
                                 imgui.new_line()
