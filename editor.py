@@ -9,6 +9,8 @@ import platform
 import traceback
 import colorsys
 import math
+import webbrowser
+import time
 
 class Editor:
     def __init__(self):
@@ -104,8 +106,22 @@ class Editor:
                 imgui.bullet_text("""Holding down shift while placing a tile will let you draw multiple tiles at once,
 and while placing a box, it will let you place a clone of said box.""")
                 imgui.bullet_text("Right click tiles, in the palette or in a box, to edit them.")
+                imgui.bullet_text("If you're confused with making hubs, watch")
+                imgui.same_line()
+                if imgui.small_button("these videos"):
+                    webbrowser.open('https://media.discordapp.net/attachments/958461471514312735/979195146287591434/Patricks_Parabox_2022-05-25_20-28-02.mp4')
+                    time.sleep(0.05)
+                    webbrowser.open('https://media.discordapp.net/attachments/958461471514312735/979195142873419836/Zygans_Parabox_Editor_2022-05-25_20-23-06.mp4')
+                imgui.same_line()
+                imgui.text("to get a gist of it.")
+                imgui.indent()
+                imgui.bullet_text("Custom hubs need")
+                imgui.same_line()
+                if imgui.small_button("this mod"):
+                    webbrowser.open('https://github.com/plokmijnuhby/CustomHubs')
+                imgui.same_line()
+                imgui.text("to open in-game.")
                 imgui.end_menu()
-
             imgui.end_main_menu_bar()
 
         if io.key_ctrl:
