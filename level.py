@@ -88,7 +88,7 @@ def draw_shine(draw_list, x, y, width, height, rtl):
 
 special_effects = {
     0: '0:  None',
-    1: '1:  Focus on this block (Challenge 30)',
+    1: '1:  Focus on this block (Challenge 38)',
     2: '2:  Right flip effect',
     3: '3:  Left flip effect',
     4: '4:  Unused',
