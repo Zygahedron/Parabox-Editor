@@ -45,6 +45,7 @@ class Editor:
         self.did_code = False
         self.error = None
         self.open_warn = False
+        self.level_invalid = False
 
         imgui.get_io().ini_file_name = b""
 
@@ -160,6 +161,9 @@ and while placing a box, it will let you place a clone of said box.""")
         if self.open_warn:
             self.open_warn = False
             imgui.open_popup('save.hub.no_area_warn')
+        if self.level_invalid:
+            self.level_invalid = False
+            imgui.open_popup('file.failed')
         if imgui.begin_popup("secret.gui"):
             imgui.push_style_color(imgui.COLOR_TEXT, .702, 0, .42)
             imgui.text("""+------------------------+
@@ -195,6 +199,16 @@ and while placing a box, it will let you place a clone of said box.""")
             imgui.text('1. Make a new block (Preferably with ID of -1 and/or with Special Effect 11)')
             imgui.text('2. Add a reference to every area in your hub to this block')
             imgui.text('3. Edit each reference to add the area name and music')
+            imgui.end_popup()
+        if imgui.begin_popup('file.failed'):
+            imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 1.0, 0.0)
+            imgui.text('   / \   ')
+            imgui.text('  / | \  ')
+            imgui.text(' /  .  \\ ')
+            imgui.text('/_______\\')
+            imgui.pop_style_color(1)
+            imgui.text('')
+            imgui.text('Invalid level file')
             imgui.end_popup()
         if menu_choice == "file.open":
             imgui.open_popup("file.open")
@@ -239,7 +253,10 @@ and while placing a box, it will let you place a clone of said box.""")
                         except (FileNotFoundError, KeyError):
                             pass
                     with open(self.level_name) as file:
-                        self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
+                        try:
+                            self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
+                        except:
+                            self.level_invalid=True
                     imgui.close_current_popup()
             imgui.end_popup()
         
