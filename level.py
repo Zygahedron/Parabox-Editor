@@ -1,10 +1,36 @@
 import os
 import colorsys, time, imgui
 from math import cos, pi, floor
-from re import S
 from random import random
 from collections import OrderedDict
 from pathlib import Path
+usefulMod = False
+usefulPurge = False
+_usefulWarn = False
+def usefulPurgeState(state=None):
+    global usefulPurge
+    if state is None: return usefulPurge
+    else: usefulPurge = state
+def usefulState(enabled = None):
+    global floor_types
+    global usefulMod
+    if enabled is None:
+        return usefulMod
+    if enabled:
+        floor_types = ['None','Button','PlayerButton','FastTravel','Info','DemoEnd','Break','Portal','Gallery','Show','Smile','Buttont','PlayerButtont'] 
+        usefulMod = True
+    else: 
+        floor_types = ['None','Button','PlayerButton','FastTravel','Info','DemoEnd','Break','Portal','Gallery','Show','Smile']
+        usefulMod = False
+def usefulWarnState(state=None):
+    global _usefulWarn
+    if state is None: return _usefulWarn
+    else: _usefulWarn = state
+def useful_change(_self, tag, state):
+    if state:
+        _self.usefulTags.append(tag)
+    else:
+        _self.usefulTags.remove(tag)
 
 def to_bool(val):
     try:
@@ -86,6 +112,15 @@ def draw_shine(draw_list, x, y, width, height, rtl):
         else:
             draw_list.add_rect_filled(x + (1 - half_cos(t))*width, y, x + (1 - half_cos(t + 0.5))*width, y + height, 0x7fffffff)
 
+# UsefulMod (Always Enabled Internal)
+def draw_weight(draw_list, x, y, width, height):
+    pl=0.499
+    fpl=[(pl,0.5), (0.5,pl), (1-pl,0.5), (0.5,1-pl)]
+    draw_list.add_polyline([(x + u*width, y + v*height) for u, v in fpl], 0x1f000000, closed=True, thickness=min(width,height)/2.5)
+
+def draw_pin(draw_list, x, y, width, height):
+    draw_list.add_polyline([(x + u*width, y + v*height) for u, v in [(0.5,0.4),(0.37,0.26),(0.63,0.26)]], 0x8fffffff, closed=True, thickness=min(width,height)/9)
+    
 special_effects = {
     0: '0:  None',
     1: '1:  Focus on this block (Challenge 38)',
@@ -104,9 +139,11 @@ special_effects = {
 }
 
 floor_types = ['None','Button','PlayerButton','FastTravel','Info','DemoEnd','Break','Portal','Gallery','Show','Smile']
+# useful_floor_types = ['None','Button','PlayerButton','FastTravel','Info','DemoEnd','Break','Portal','Gallery','Show','Smile','Buttont','PlayerButtont']
+
 
 class Block:
-    def __init__(self, level, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect):
+    def __init__(self, level, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, **kwargs):
         self.x = int(x)
         self.y = int(y)
         self.id = int(id)
@@ -128,7 +165,22 @@ class Block:
         self.children = []
         self.window_size = 130
         self.exit = None
-
+        # UsefulMod (Internal)
+        if not "purge" in kwargs:
+            if "usefulTags" in kwargs:
+                self.usefulTags = kwargs["usefulTags"]
+            else:
+                self.usefulTags = []
+            if "usefulWrap" in kwargs:
+                self.usefulWrap = kwargs["usefulWrap"]
+            else:
+                self.usefulWrap = 0
+        else:
+            self.usefulTags = []
+            self.usefulWrap = 0
+    # UsefulMod (Always Enabled Internal)
+    def get_useful(self):
+        return {"usefulTags": self.usefulTags.copy(), "usefulWrap": self.usefulWrap}
     def __repr__(self):
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
 
@@ -142,7 +194,7 @@ class Block:
             return self
 
     def full_copy(self, level, id=None):
-        return Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+        return Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, **self.get_useful())
 
     def make_ref(self, level, new=True):
         return Ref(level, 0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, -1, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
@@ -156,6 +208,11 @@ class Block:
             saved_blocks.append(self)
         line = ["Block", int(self.x), int(self.y), int(self.id), int(self.width), int(self.height), f"{self.hue:1.3g}", f"{self.sat:1.3g}", f"{self.val:1.3g}", f"{self.zoomfactor:1.3g}", int(self.fillwithwalls), int(self.player), int(self.possessable), int(self.playerorder), int(self.fliph), int(self.floatinspace), int(self.specialeffect)]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
+        # UsefulMod (Always Enabled Internal)
+        for useTag in self.usefulTags:
+            block = "\n" + "\t"*indent + str(useTag) + block
+        if self.usefulWrap > 0:
+            block = "\n" + "\t"*indent + "?WRP "+ str(self.usefulWrap) + block
         for child in self.children:
             if 0 <= child.x < self.width and 0 <= child.y < self.height:
                 block += child.save(level, indent + 1, saved_blocks)
@@ -195,6 +252,11 @@ class Block:
 
         if self.fliph and depth >= 0:
             draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
+        # Useful Mod (Always Enabled Internal)
+        if self.usefulTags and "?WEI" in self.usefulTags:
+            draw_weight(draw_list, x, y, width, height)
+        if self.usefulTags and "?PIN" in self.usefulTags:
+            draw_pin(draw_list, x, y, width, height)
         if self.specialeffect in [2,3]:
             draw_shine(draw_list, x, y, width, height, self.specialeffect == 3)
         if self.player:
@@ -305,6 +367,28 @@ class Block:
         changed, value = imgui.combo("Special Effect", list(special_effects.keys()).index(self.specialeffect), list(special_effects.values()))
         if changed:
             self.specialeffect = list(special_effects.keys())[value]
+        # UsefulMod (Conditional UI)
+        if usefulMod and imgui.begin_menu("UsefulMod"):
+            changed, value = imgui.input_int("Wrap", int(self.usefulWrap))
+            if changed: 
+                self.usefulWrap = value
+            changed, value = imgui.checkbox("Camera Follow", "?PCF" in self.usefulTags)
+            if changed:
+                useful_change(self, "?PCF", bool(value))
+            changed, value = imgui.checkbox("Inf Zone", "?IFZ" in self.usefulTags)
+            if changed:
+                useful_change(self, "?IFZ", bool(value))
+            changed, value = imgui.checkbox("Weighted", "?WEI" in self.usefulTags)
+            if changed:
+                useful_change(self, "?WEI", bool(value))
+            changed, value = imgui.checkbox("Anti", "?ANT" in self.usefulTags)
+            if changed:
+                useful_change(self, "?ANT", bool(value))
+            changed, value = imgui.checkbox("Pinned", "?PIN" in self.usefulTags)
+            if changed:
+                useful_change(self, "?PIN", bool(value))
+            imgui.end_menu()
+
     
     def palette_menu(self, level):
         self.menu(level)
@@ -320,7 +404,7 @@ class Block:
             return Ref(level,0,0,level.next_free,1,0,0,1,0,self.id,0,0,0,0,0,0)
 
 class Ref:
-    def __init__(self, level, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name = None):
+    def __init__(self, level, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name = None, **kwargs):
         self.x = int(x)
         self.y = int(y)
         self.id = int(id)
@@ -345,12 +429,22 @@ class Ref:
         self.parent = None
         self.area_name = area_name
         self.area_music = 0
+        # UsefulMod (Always Enabled Internal)
+        if not "purge" in kwargs:
+            if "usefulTags" in kwargs:
+                self.usefulTags = kwargs["usefulTags"]
+            else:
+                self.usefulTags = []
+    
+    # UsefulMod (Always Enabled Internal)
+    def get_useful(self):
+        return {"usefulTags": self.usefulTags.copy()}
 
     def __repr__(self):
         return f'<Reference of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id}>" if self.parent is not None else None}>'
 
     def copy(self, level, held=False): # return non-exit copy
-        return Ref(level, 0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, self.area_name)
+        return Ref(level, 0, 0, self.id, 0, self.infexit, self.infexitnum, self.infenter, self.infenternum, self.infenterid, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, self.area_name, self.get_useful())
 
     def save(self, level, indent, saved_blocks):
         line = ["Ref", 
@@ -371,7 +465,11 @@ class Ref:
             int(self.specialeffect),
             self.area_name.replace(' ','_') if self.area_name is not None else ''
         ]
-        return "\n" + "\t"*indent + " ".join(str(i) for i in line)
+        refText = "\n" + "\t"*indent + " ".join(str(i) for i in line)
+        # UsefulMod (Always Enabled Internal)
+        for useTag in self.usefulTags:
+            refText = "\n" + "\t"*indent + str(useTag) + refText
+        return refText
 
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
 
@@ -417,6 +515,11 @@ class Ref:
         elif self.possessable:
             draw_eyes(draw_list, x, y, width, height, False)
 
+        # UsefulMod (Always Enabled Internal)
+        if self.usefulTags and "?WEI" in self.usefulTags:
+            draw_weight(draw_list, x, y, width, height)
+        if self.usefulTags and "?PIN" in self.usefulTags:
+            draw_pin(draw_list, x, y, width, height)
         if min(width,height) > 15 and depth >= 0:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
@@ -474,6 +577,22 @@ class Ref:
         changed, value = imgui.combo("Special Effect", list(special_effects.keys()).index(self.specialeffect), list(special_effects.values()))
         if changed:
             self.specialeffect = list(special_effects.keys())[value]
+
+        # UsefulMod (Conditional UI)
+        if usefulMod and imgui.begin_menu("UsefulMod"):
+            changed, value = imgui.checkbox("Inf Enter Allowed", "?AIE" in self.usefulTags)
+            if changed:
+                useful_change(self, "?AIE", bool(value))
+            changed, value = imgui.checkbox("Weighted", "?WEI" in self.usefulTags)
+            if changed:
+                useful_change(self, "?WEI", bool(value))
+            changed, value = imgui.checkbox("Anti", "?ANT" in self.usefulTags)
+            if changed:
+                useful_change(self, "?ANT", bool(value))
+            changed, value = imgui.checkbox("Pinned", "?PIN" in self.usefulTags)
+            if changed:
+                useful_change(self, "?PIN", bool(value))
+            imgui.end_menu()
         if level.is_hub:
             imgui.separator()
             changed, value = imgui.input_text("Area Name", self.area_name if self.area_name is not None else '', 256)
@@ -623,6 +742,15 @@ class Floor:
         elif self.type == "Portal":
             draw_list.add_rect_filled(x + 0.3*width, y + 0.2*height, x + 0.4*width, y + 0.8*height, color)
             draw_list.add_rect_filled(x + 0.3*width, y + 0.8*height, x + 0.7*width, y + 0.7*height, color)
+        # UsefulMod (Always Enabled Internal)
+        elif self.type == "PlayerButtont":
+            color = 0x7f0000ff
+            draw_eyes(draw_list, x + width/10, y + height/10, width * 8/10, height * 8/10, True, color, blink_offset = ((time.time())*-7.12+1))
+            other = self.parent.get_child(self.x, self.y) if self.parent else None
+            if other and type(other) != Floor and other.player:
+                draw_list.add_rect(x, y, x+width, y+height, 0x7f0000ff, thickness=min(width,height)/20)
+        elif self.type == "Buttont":
+            color = 0x7f0000ff
         if border:
             draw_list.add_rect(x + width/10, y + height/10, x + width*9/10, y + height*9/10, color, thickness=min(width,height)/20)
 
@@ -694,6 +822,8 @@ class Level:
         self.blocks = {}
         self.next_free = 0
         self.credits = credits
+        useful_warn = False
+        usefulWarnState(False)
         try:
             [metadata, data] = data.split("\n#\n")
         except ValueError:
@@ -709,13 +839,26 @@ class Level:
         if not "draw_style" in self.metadata: self.metadata["draw_style"] = "normal"
         self.metadata["custom_level_music"] = -1 if "custom_level_music" not in self.metadata else int(self.metadata["custom_level_music"])
         self.metadata["custom_level_palette"] = -1 if "custom_level_palette" not in self.metadata else int(self.metadata["custom_level_palette"])
+        # UsefulMod (Internal)
+        if not usefulPurgeState():
+            self.metadata["winfz_sensitivity"] = "winfz_sensitivity" in self.metadata and self.metadata["winfz_sensitivity"] == "1"
+            self.metadata["white_eyes"] = "white_eyes" in self.metadata and self.metadata["white_eyes"] == "1"
+            self.metadata["banish_fix"] = "banish_fix" in self.metadata and self.metadata["banish_fix"] == "1"
+            self.metadata["ifzeat_fix"] = "ifzeat_fix" in self.metadata and self.metadata["ifzeat_fix"] == "1"
+            self.metadata["epsi_fix"] = "epsi_fix" in self.metadata and self.metadata["epsi_fix"] == "1"
+            if self.metadata["winfz_sensitivity"] or self.metadata["white_eyes"] or self.metadata["banish_fix"] or self.metadata["ifzeat_fix"] or self.metadata["epsi_fix"]:
+                useful_warn = True
+        
 
         data = data.split("\n")
         indent = 0
         last_block = None
         parent = None
         ref_exits = {}
+        kwargs = {"usefulTags":[]}
         for line in data:
+            if usefulPurgeState():
+                kwargs["purge"] = True
             trimmed = line.replace("\t","")
             last_indent = indent
             indent = len(line) - len(trimmed)
@@ -736,7 +879,8 @@ class Level:
             block_type = args.pop(0)
             if block_type == "Block":
                 [x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
-                block = Block(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect)
+                block = Block(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, **kwargs)
+                kwargs = {"usefulTags":[]}
                 block.parent = parent
                 if parent:
                     parent.place_child(int(x), int(y), block)
@@ -754,7 +898,8 @@ class Level:
                     area_name = rest[0].replace('_',' ')
                 else:
                     area_name = None
-                ref = Ref(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name)
+                ref = Ref(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name, **kwargs)
+                kwargs = {"usefulTags":[]}
                 if int(exitblock) and not int(infenter):
                     ref_exits[int(id)] = ref
                 if parent:
@@ -782,6 +927,13 @@ class Level:
                 else:
                     print("Discarding floor at root level")
                 last_block = floor
+            # UsefulMod (Always Enabled Internal)
+            elif len(block_type) > 0 and block_type[0]=="?":
+                useful_warn = True
+                if block_type == "?WRP":
+                    kwargs["usefulWrap"]=int(args[0].strip)
+                else:
+                    kwargs["usefulTags"].append(block_type)
             else:
                 pass
         
@@ -789,6 +941,10 @@ class Level:
         for id, ref in ref_exits.items():
             block = self.blocks[id]
             block.exit = ref
+        if useful_warn and not usefulState() and not usefulPurgeState():
+            usefulWarnState(True)
+        usefulPurgeState(False)
+
 
     def save(self):
         data = "version 4\n"
@@ -804,6 +960,17 @@ class Level:
             data += "custom_level_music " + str(self.metadata["custom_level_music"]) + "\n"
         if self.metadata["custom_level_palette"] != -1:
             data += "custom_level_palette " + str(self.metadata["custom_level_palette"]) + "\n"
+        # UsefulMod
+        if self.metadata["winfz_sensitivity"]:
+            data += "winfz_sensitivity 1\n"
+        if self.metadata["white_eyes"]:
+            data += "white_eyes 1\n"
+        if self.metadata["banish_fix"]:
+            data += "banish_fix 1\n"
+        if self.metadata["ifzeat_fix"]:
+            data += "ifzeat_fix 1\n"
+        if self.metadata["epsi_fix"]:
+            data += "epsi_fix 1\n"
 
         data += "#\n"
         to_save = list(self.blocks.values())
@@ -876,6 +1043,27 @@ class Level:
             for i, item in excluded.items():
                 if imgui.checkbox(item,order[i][1])[0]:
                     order[i][1] = True
+            imgui.end_menu()
+        
+        # UsefulMod (Conditional UI)
+        if usefulMod:
+            imgui.separator() 
+        if usefulMod and imgui.begin_menu("UsefulMod"):
+            changed, value = imgui.checkbox("WInfZ Sensitivity", self.metadata["winfz_sensitivity"])
+            if changed:
+                self.metadata["winfz_sensitivity"] = value
+            changed, value = imgui.checkbox("White Eyes", self.metadata["white_eyes"])
+            if changed:
+                self.metadata["white_eyes"] = value
+            changed, value = imgui.checkbox("Banish Fix", self.metadata["banish_fix"])
+            if changed:
+                self.metadata["banish_fix"] = value
+            changed, value = imgui.checkbox("Inf Zone Eat Fix", self.metadata["ifzeat_fix"])
+            if changed:
+                self.metadata["ifzeat_fix"] = value
+            changed, value = imgui.checkbox("Epsilon Fix", self.metadata["epsi_fix"])
+            if changed:
+                self.metadata["epsi_fix"] = value
             imgui.end_menu()
         imgui.separator()
         if not self.hub_parent:

@@ -49,6 +49,31 @@ class Editor:
 
         imgui.get_io().ini_file_name = b""
 
+    def loadlevel(self):
+        self.level_name = self.files[self.file_choice]
+        hub_parent = False
+        level_number = 0
+        credits = ''
+        difficulty = 0
+        possess_vfx = 0
+        if self.level_name != 'hub.txt':
+            hub_parent = os.path.exists('hub.txt')
+        else:
+            with open('credits.txt','r') as f:
+                credits = f.read()
+        if hub_parent:
+            try:
+                with open('puzzle_data.txt','r') as file:
+                    puzzle_data = {line.split(' ')[0]:line.split(' ')[1:] for line in file.read().split('\n')}
+                difficulty, possess_vfx, level_number = [int(n) for n in puzzle_data[Path(self.level_name).stem]]
+            except (FileNotFoundError, KeyError):
+                pass
+        with open(self.level_name) as file:
+            try:
+                self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
+            except:
+                self.level_invalid=True
+                
     def save_level(self):
         save_data, is_hub, parent, level_number, areas, credits, possess_fx, difficulty = self.level.save()
         with open(self.level_name, "w" if os.path.exists(self.level_name) else "x") as file:
@@ -123,6 +148,12 @@ and while placing a box, it will let you place a clone of said box.""")
                 imgui.same_line()
                 imgui.text("to open in-game.")
                 imgui.end_menu()
+            if imgui.begin_menu("Extra"):
+                changed, value = imgui.checkbox("Enable UsefulMod", usefulState(None))
+                if changed:
+                    usefulState(value)
+                    
+                imgui.end_menu()
             imgui.end_main_menu_bar()
 
         if io.key_ctrl:
@@ -164,6 +195,9 @@ and while placing a box, it will let you place a clone of said box.""")
         if self.level_invalid:
             self.level_invalid = False
             imgui.open_popup('file.failed')
+        if usefulWarnState():
+            usefulWarnState(False)
+            imgui.open_popup("extra.useful")
         if imgui.begin_popup("secret.gui"):
             imgui.push_style_color(imgui.COLOR_TEXT, .702, 0, .42)
             imgui.text("""+------------------------+
@@ -210,6 +244,28 @@ and while placing a box, it will let you place a clone of said box.""")
             imgui.text('')
             imgui.text('Invalid level file')
             imgui.end_popup()
+        if imgui.begin_popup('extra.useful'):
+            imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 1.0, 0.0)
+            imgui.text('   / \   ')
+            imgui.text('  / | \  ')
+            imgui.text(' /  .  \\ ')
+            imgui.text('/_______\\')
+            imgui.pop_style_color(1)
+            imgui.text('')
+            imgui.text('UsefulMod level detected. Please Enable UsefulMod')
+            imgui.text('or remove UsefulMod features from the level.')
+            if imgui.button('Enable UsefulMod now'):
+                usefulState(True)
+                imgui.close_current_popup()
+            # Purge Features
+            imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 0.0, 0.0)
+            if imgui.button('Reload removing UsefulMod features'):
+                usefulPurgeState(True)
+                self.loadlevel()
+                imgui.close_current_popup()
+            imgui.pop_style_color(1)
+            
+            imgui.end_popup()
         if menu_choice == "file.open":
             imgui.open_popup("file.open")
             self.file_choice = 0
@@ -234,29 +290,7 @@ and while placing a box, it will let you place a clone of said box.""")
                     os.chdir(os.path.expanduser(self.levels_folder))
                     self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
                 else:
-                    self.level_name = self.files[self.file_choice]
-                    hub_parent = False
-                    level_number = 0
-                    credits = ''
-                    difficulty = 0
-                    possess_vfx = 0
-                    if self.level_name != 'hub.txt':
-                        hub_parent = os.path.exists('hub.txt')
-                    else:
-                        with open('credits.txt','r') as f:
-                            credits = f.read()
-                    if hub_parent:
-                        try:
-                            with open('puzzle_data.txt','r') as file:
-                                puzzle_data = {line.split(' ')[0]:line.split(' ')[1:] for line in file.read().split('\n')}
-                            difficulty, possess_vfx, level_number = [int(n) for n in puzzle_data[Path(self.level_name).stem]]
-                        except (FileNotFoundError, KeyError):
-                            pass
-                    with open(self.level_name) as file:
-                        try:
-                            self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
-                        except:
-                            self.level_invalid=True
+                    self.loadlevel()
                     imgui.close_current_popup()
             imgui.end_popup()
         
@@ -526,3 +560,5 @@ and while placing a box, it will let you place a clone of said box.""")
                 self.error = None
 
         return True
+
+    
