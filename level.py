@@ -872,7 +872,6 @@ class Level:
             last_indent = indent
             indent = len(line) - len(trimmed)
             if indent == last_indent:
-                print("line")
                 pass
             elif indent == 0:
                 parent = None
