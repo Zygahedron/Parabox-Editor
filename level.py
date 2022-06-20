@@ -242,7 +242,6 @@ class Block:
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
 
         self.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
-        print(str(self.id)+" as "+str(depth))
         if self.exit and depth > -1:
             if self.exit.infenter:
                 w = width / (self.exit.infenternum + 1) * 1.3
@@ -827,12 +826,15 @@ class Level:
         self.blocks = {}
         self.next_free = 0
         self.credits = credits
+        # UsefulState
         useful_warn = False
         usefulWarnState(False)
+        #
         try:
             [metadata, data] = data.split("\n#\n")
         except ValueError:
             raise Exception('Selected file isn\'t a level!')
+
         metadata = [e.split(" ", 1) for e in metadata.split("\n")]
         self.metadata = {e[0]: e[1] for e in metadata}
         if not "attempt_order" in self.metadata: self.metadata["attempt_order"] = "push,enter,eat,possess"
@@ -852,6 +854,7 @@ class Level:
             self.metadata["ifzeat_fix"] = "ifzeat_fix" in self.metadata and self.metadata["ifzeat_fix"] == "1"
             self.metadata["epsi_fix"] = "epsi_fix" in self.metadata and self.metadata["epsi_fix"] == "1"
             if self.metadata["winfz_sensitivity"] or self.metadata["white_eyes"] or self.metadata["banish_fix"] or self.metadata["ifzeat_fix"] or self.metadata["epsi_fix"]:
+                # UsefulState
                 useful_warn = True
         
 
@@ -862,12 +865,14 @@ class Level:
         ref_exits = {}
         kwargs = {"usefulTags":[]}
         for line in data:
+            # UsefulState
             if usefulPurgeState():
                 kwargs["purge"] = True
             trimmed = line.replace("\t","")
             last_indent = indent
             indent = len(line) - len(trimmed)
             if indent == last_indent:
+                print("line")
                 pass
             elif indent == 0:
                 parent = None
