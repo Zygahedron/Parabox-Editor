@@ -22,7 +22,7 @@ class Editor:
         self.help_open = False
         self.new_size = [5,5]
         self.samples = [
-            Wall(None, 0, 0, 0, 0, 0, "_"),
+            Wall(0, 0, 0, 0, 0, "_"),
             Floor(None, 0, 0, "Button", ""),
             Block(None, 0, 0, "-1", 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
             Block(None, 0, 0, "-1", 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
@@ -71,8 +71,10 @@ class Editor:
         with open(self.level_name) as file:
             try:
                 self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
-            except:
+            # FIXXX
+            except Exception as Err:
                 self.level_invalid=True
+                print(Err)
                 
     def save_level(self):
         save_data, is_hub, parent, level_number, areas, credits, possess_fx, difficulty = self.level.save()
@@ -99,6 +101,7 @@ class Editor:
             puzzle_data[Path(self.level_name).stem] = f'{difficulty} {possess_fx} {level_number}'
             with open('puzzle_data.txt', "w") as file:
                 file.write('\n'.join([key + ' ' + value for key,value in puzzle_data.items()]))
+
     def main_loop(self, keyboard):
         overlay_draw_list = imgui.get_overlay_draw_list()
         io = imgui.get_io()
@@ -129,8 +132,7 @@ class Editor:
             if imgui.begin_menu("Help"):
                 imgui.bullet_text("To create a new level, go to File > New.")
                 imgui.bullet_text("Left click a tile in the palette to grab it, or click the plus to make a new box.")
-                imgui.bullet_text("""Holding down shift while placing a tile will let you draw multiple tiles at once,
-and while placing a box, it will let you place a clone of said box.""")
+                imgui.bullet_text("Holding down shift while placing a tile will let you draw multiple tiles at once,\nand while placing a box, it will let you place a clone of said box.")
                 imgui.bullet_text("Right click tiles, in the palette or in a box, to edit them.")
                 imgui.bullet_text("If you're confused with making hubs, watch")
                 imgui.same_line()
@@ -149,6 +151,7 @@ and while placing a box, it will let you place a clone of said box.""")
                 imgui.text("to open in-game.")
                 imgui.end_menu()
             if imgui.begin_menu("Extra"):
+                # UsefulMod Extra
                 changed, value = imgui.checkbox("Enable UsefulMod", usefulState(None))
                 if changed:
                     usefulState(value)

@@ -431,7 +431,10 @@ class Ref:
         self.specialeffect = int(specialeffect)
         self.blinkoffset = random()*26
         self.parent = None
-        self.area_name = area_name
+        if level.is_hub:
+            self.area_name = area_name.replace('_',' ')
+        else:
+            self.area_name = None
         self.area_music = 0
         # UsefulMod (Always Enabled Internal)
         if not "purge" in kwargs:
@@ -609,7 +612,7 @@ class Ref:
 class Wall:
     id = None
 
-    def __init__(self, level, x, y, player, possessable, playerorder, condition = None):
+    def __init__(self, x, y, player, possessable, playerorder, condition = None):
         self.x = int(x)
         self.y = int(y)
         self.player = int(player)
@@ -627,7 +630,7 @@ class Wall:
         return "\n" + "\t"*indent + " ".join(str(i) for i in line)
 
     def copy(self, level, held=False):
-        return Wall(level, 0, 0, self.player, self.possessable, self.playerorder, self.condition)
+        return Wall(0, 0, self.player, self.possessable, self.playerorder, self.condition)
     
     def draw(self, draw_list, x, y, width, height, level, depth, flip):
         self.parent = self.parent if type(self.parent) is not tuple else self.parent[0]
@@ -887,44 +890,34 @@ class Level:
             args = trimmed.split(" ")
             block_type = args.pop(0)
             if block_type == "Block":
-                [x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, *_] = args
-                block = Block(self, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, **kwargs)
+                block = Block(self, *args, **kwargs)
+                # For UsefulMod
                 kwargs = {"usefulTags":[]}
                 block.parent = parent
                 if parent:
-                    parent.place_child(int(x), int(y), block)
+                    parent.place_child(int(block.x), int(block.y), block)
                 else:
                     self.roots.append(block)
                 last_block = block
-                if fillwithwalls != "1":
-                    if not int(id) in self.blocks:
-                        self.blocks[int(id)] = block
-                    else:
-                        print("duplicate block with id " + id)
+                if block.fillwithwalls != 1:
+                    if not int(block.id) in self.blocks:
+                        self.blocks[int(block.id)] = block
+                    elif block.id != -1:
+                        print("duplicate block with id " + str(block.id))
             elif block_type == "Ref":
-                [x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, *rest] = args
-                if self.is_hub:
-                    area_name = rest[0].replace('_',' ')
-                else:
-                    area_name = None
-                ref = Ref(self, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name, **kwargs)
+                ref = Ref(self, *args, **kwargs)
                 kwargs = {"usefulTags":[]}
-                if int(exitblock) and not int(infenter):
-                    ref_exits[int(id)] = ref
+                if int(ref.exitblock) and not int(ref.infenter):
+                    ref_exits[int(ref.id)] = ref
                 if parent:
-                    parent.place_child(int(x), int(y), ref)
+                    parent.place_child(int(ref.x), int(ref.y), ref)
                 else:
                     self.roots.append(ref)
                 last_block = ref
             elif block_type == "Wall":
-                [x, y, player, possessable, playerorder, *extra] = args
-                if self.is_hub:
-                    condition = extra[0]
-                else:
-                    condition = None
-                wall = Wall(self, x, y, player, possessable, playerorder, condition)
+                wall = Wall(*args)
                 if parent:
-                    parent.place_child(int(x), int(y), wall)
+                    parent.place_child(int(wall.x), int(wall.y), wall)
                 else:
                     print("Discarding wall at root level")
                 last_block = wall
