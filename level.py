@@ -197,7 +197,11 @@ class Block:
         return Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, **self.get_useful())
 
     def make_ref(self, level, new=True):
-        return Ref(level, 0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, -1, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect)
+        usefulTags = {"usefulTags":[]}
+        for tag in self.usefulTags:
+            if tag in ["?AIE","?WEI","?ANT","?PIN"]:
+                usefulTags["usefulTags"].append(tag)
+        return Ref(level, 0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, -1, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, **usefulTags)
     
     def save(self, level, indent, saved_blocks):
         if self in saved_blocks and not self.fillwithwalls:
@@ -238,7 +242,7 @@ class Block:
             draw_list.add_rect(x, y, x+width, y+height, 0xff000000, thickness=min(width,height)/20)
 
         self.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
-
+        print(str(self.id)+" as "+str(depth))
         if self.exit and depth > -1:
             if self.exit.infenter:
                 w = width / (self.exit.infenternum + 1) * 1.3
@@ -253,10 +257,11 @@ class Block:
         if self.fliph and depth >= 0:
             draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
         # Useful Mod (Always Enabled Internal)
-        if self.usefulTags and "?WEI" in self.usefulTags:
-            draw_weight(draw_list, x, y, width, height)
-        if self.usefulTags and "?PIN" in self.usefulTags:
-            draw_pin(draw_list, x, y, width, height)
+        if depth >= 0:
+            if self.usefulTags and "?WEI" in self.usefulTags:
+                draw_weight(draw_list, x, y, width, height)
+            if self.usefulTags and "?PIN" in self.usefulTags:
+                draw_pin(draw_list, x, y, width, height)
         if self.specialeffect in [2,3]:
             draw_shine(draw_list, x, y, width, height, self.specialeffect == 3)
         if self.player:
@@ -974,6 +979,7 @@ class Level:
 
         data += "#\n"
         to_save = list(self.blocks.values())
+        # print(to_save[0].children)
         saved_blocks = []
         seen = []
         areas = []
