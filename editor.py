@@ -1,17 +1,10 @@
+import imp
 import imgui
 from level import *
-import style
-
-import glob
-import os
+import style, glob, os, platform, traceback, colorsys, math, webbrowser, time
 from pathlib import Path
-import platform
-import traceback
-import colorsys
-import math
-import webbrowser
-import time
-
+from state import usefulmod
+from state import Design
 class Editor:
     def __init__(self):
         self.cursor_held = None
@@ -23,7 +16,7 @@ class Editor:
         self.new_size = [5,5]
         self.samples = [
             Wall(0, 0, 0, 0, 0, "_"),
-            Floor(None, 0, 0, "Button", ""),
+            Floor(0, 0, "Button", ""),
             Block(None, 0, 0, "-1", 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
             Block(None, 0, 0, "-1", 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
         ]
@@ -57,7 +50,7 @@ class Editor:
         difficulty = 0
         possess_vfx = 0
         if self.level_name != 'hub.txt':
-            hub_parent = os.path.exists('hub.txt')
+            hub_parent = os.path.exists('puzzle_data.txt')
         else:
             with open('credits.txt','r') as f:
                 credits = f.read()
@@ -73,8 +66,9 @@ class Editor:
                 self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
             # FIXXX
             except Exception as Err:
-                self.level_invalid=True
                 print(Err)
+                self.level_invalid=True
+                
                 
     def save_level(self):
         save_data, is_hub, parent, level_number, areas, credits, possess_fx, difficulty = self.level.save()
@@ -90,6 +84,7 @@ class Editor:
                     pass
             if len(areas) == 0:
                 self.open_warn = True
+        # TODO figure out what parent is
         elif parent:
             if not os.path.exists('puzzle_data.txt'):
                 with open('puzzle_data.txt','x'):
@@ -98,6 +93,7 @@ class Editor:
             else:
                 with open('puzzle_data.txt', "r") as file:
                     puzzle_data = {line.split(' ',1)[0]:line.split(' ',1)[1] for line in file.read().split('\n')}
+            # Edits puzzle data for one file (no existence check needed)
             puzzle_data[Path(self.level_name).stem] = f'{difficulty} {possess_fx} {level_number}'
             with open('puzzle_data.txt', "w") as file:
                 file.write('\n'.join([key + ' ' + value for key,value in puzzle_data.items()]))
@@ -108,6 +104,7 @@ class Editor:
         if self.did_code:
             imgui.get_style().colors[imgui.COLOR_TEXT] = list(colorsys.hsv_to_rgb((time.time()/5)%1,1,1))+[1]
         menu_choice = None
+        # Main Menu Bar
         if imgui.begin_main_menu_bar():
             if imgui.begin_menu("File", True):
                 if imgui.menu_item("New", "ctrl+n")[0]:
@@ -122,13 +119,36 @@ class Editor:
                 imgui.separator()
                 if imgui.menu_item("Quit")[0]:
                     return False
-
                 imgui.end_menu()
             
             if imgui.begin_menu("Edit", self.level != None):
                 self.level.edit_menu()
                 imgui.end_menu()
 
+            if imgui.begin_menu("Hub Tools"):
+                imgui.bullet_text("Imagine there are hub tools here")
+                imgui.end_menu()
+
+            if imgui.begin_menu("Extra"):
+                # UsefulMod Extra
+                changed, value = imgui.checkbox("Enable UsefulMod", usefulmod.enabled)
+                if changed:
+                    usefulmod.enable(floor_types, value)
+                changed, value = imgui.checkbox("Gridlines", Design.grid)
+                if changed:
+                    Design.grid = value
+                if Design.grid:
+                    if imgui.begin_menu("Gridlines Style"):
+                        changed, value = imgui.color_edit4("Gridline Color",*Design.gridstyle)
+                        if changed:
+                            Design.gridstyle = value
+                        changed, value = imgui.input_int("Gridline Width", Design.gridwidth)
+                        if changed:
+                            Design.gridwidth = value
+                        imgui.end_menu()
+                imgui.end_menu()
+            
+            
             if imgui.begin_menu("Help"):
                 imgui.bullet_text("To create a new level, go to File > New.")
                 imgui.bullet_text("Left click a tile in the palette to grab it, or click the plus to make a new box.")
@@ -150,15 +170,8 @@ class Editor:
                 imgui.same_line()
                 imgui.text("to open in-game.")
                 imgui.end_menu()
-            if imgui.begin_menu("Extra"):
-                # UsefulMod Extra
-                changed, value = imgui.checkbox("Enable UsefulMod", usefulState(None))
-                if changed:
-                    usefulState(value)
-                    
-                imgui.end_menu()
             imgui.end_main_menu_bar()
-
+        # Shortcuts
         if io.key_ctrl:
             if keyboard.n.pressed:
                 self.level = Level("untitled", "version 4\n#\n")
@@ -169,6 +182,7 @@ class Editor:
                     menu_choice = "file.saveas"
                 elif self.files != None:
                     self.save_level()
+        # Secret 
         if keyboard.up.pressed:
             self.code_check.append('up')
         if keyboard.down.pressed:
@@ -192,15 +206,17 @@ class Editor:
                 self.code_check = []
             else:
                 self.code_check = self.code_check[1:]
+        # Popup Initializers
         if self.open_warn:
             self.open_warn = False
             imgui.open_popup('save.hub.no_area_warn')
         if self.level_invalid:
             self.level_invalid = False
             imgui.open_popup('file.failed')
-        if usefulWarnState():
-            usefulWarnState(False)
+        if usefulmod.warn:
+            usefulmod.warn = False
             imgui.open_popup("extra.useful")
+        # Popups
         if imgui.begin_popup("secret.gui"):
             imgui.push_style_color(imgui.COLOR_TEXT, .702, 0, .42)
             imgui.text("""+------------------------+
@@ -234,8 +250,8 @@ class Editor:
             imgui.text('This hub is invalid because it has no area data.')
             imgui.text('Add area data like this:')
             imgui.text('1. Make a new block (Preferably with ID of -1 and/or with Special Effect 11)')
-            imgui.text('2. Add a reference to every area in your hub to this block')
-            imgui.text('3. Edit each reference to add the area name and music')
+            imgui.text('2. Add a clone to every area in your hub to this block')
+            imgui.text('3. Edit each clone to add the area name and music')
             imgui.end_popup()
         if imgui.begin_popup('file.failed'):
             imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 1.0, 0.0)
@@ -258,12 +274,12 @@ class Editor:
             imgui.text('UsefulMod level detected. Please Enable UsefulMod')
             imgui.text('or remove UsefulMod features from the level.')
             if imgui.button('Enable UsefulMod now'):
-                usefulState(True)
+                usefulmod.enable(floor_types)
                 imgui.close_current_popup()
             # Purge Features
             imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 0.0, 0.0)
             if imgui.button('Reload removing UsefulMod features'):
-                usefulPurgeState(True)
+                usefulmod.purge = True
                 self.loadlevel()
                 imgui.close_current_popup()
             imgui.pop_style_color(1)
@@ -282,6 +298,7 @@ class Editor:
                     os.chdir(os.path.expanduser(self.levels_folder_base))
                     self.levels_folder = self.levels_folder_base
                 search_changed = True
+            # TODO Enable non txt files from Extra
             if search_changed:
                 self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
             clicked, self.file_choice = imgui.listbox("Levels", self.file_choice, 
@@ -293,6 +310,7 @@ class Editor:
                     os.chdir(os.path.expanduser(self.levels_folder))
                     self.files = ['..'] + glob.glob(self.levels_search + "*.txt") + glob.glob(self.levels_search + "*" + os.sep)
                 else:
+                    # May need to catch here for non-levels as hubtools
                     self.loadlevel()
                     imgui.close_current_popup()
             imgui.end_popup()
@@ -554,6 +572,8 @@ class Editor:
             if self.cursor_held:
                 x, y = imgui.get_mouse_position()
                 self.cursor_held.draw(overlay_draw_list, x - 10, y - 10, 20, 20, self.level, 0, False)
+        # Error Debug
+        # TODO Change error debug mechanisms
         if self.error:
             imgui.open_popup('Debug')
             if imgui.begin_popup('Debug'):
