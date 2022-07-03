@@ -1,4 +1,5 @@
 import imgui
+import math
 from random import random
 from state import Design, usefulmod
 from .utils import to_bool, draw_infinity, draw_epsilon, draw_shine, draw_eyes, draw_weight, draw_pin, useful_change, special_effects
@@ -42,7 +43,18 @@ class Ref:
                 self.usefulTags = []
         else:
                 self.usefulTags = []
-    
+        # Tell the world you (the block you reference) that you exist
+        if level.blocks[self.id]:
+            orig = level.blocks[self.id]
+            orig.refs.append(self)
+            # Prevent 10000 unused refs in a blocks ref array without causing too much
+            # trouble for large ref amounts by checking for unused refs if ref length is a
+            # square number more than 15
+            if len(orig.refs) > 15:
+                num = math.sqrt(len(orig.refs))
+                if num == int(num):
+                    # get ref function purges dead refs
+                    orig.get_refs()
     # UsefulMod (Always Enabled Internal)
     def get_useful(self):
         return {"usefulTags": self.usefulTags.copy()}

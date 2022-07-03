@@ -50,6 +50,7 @@ class Block:
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
     def get_refs(self):
         for ref in self.refs:
+            # This won't remove ref blocks (I checked)
             if ref.parent == None or ref.id != self.id:
                 self.refs.remove(ref)
         return self.refs
@@ -231,7 +232,14 @@ class Block:
             delta = value - self.id
             while value in [block.id for block in level.blocks.values()]:
                 value += delta
+            # Get refs before our ID changes
+            
+            refs = self.get_refs()
+            del level.blocks[self.id]
             self.id = value
+            level.blocks[self.id] = self
+            for ref in refs:
+                ref.id = value
         changed, value = imgui.input_int("Width", self.width)
         if changed and value > 0:
             self.width = value
