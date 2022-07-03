@@ -146,6 +146,9 @@ class Editor:
                         if changed:
                             Design.gridwidth = value
                         imgui.end_menu()
+                changed, value = imgui.checkbox("Block Debug Info", Design.placedebug)
+                if changed:
+                    Design.placedebug = value
                 imgui.end_menu()
             
             

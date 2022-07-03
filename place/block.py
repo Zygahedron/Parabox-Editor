@@ -222,9 +222,10 @@ class Block:
         child.y = y
 
     def menu(self, level):
-        imgui.bullet_text(str(self))
-        imgui.bullet_text("Exit:"+str(self.exit))
-        imgui.bullet_text("Par:"+str(self.parent))
+        if Design.placedebug:
+            imgui.bullet_text(str(self))
+            imgui.bullet_text("Exit:"+str(self.exit))
+            imgui.bullet_text("Par:"+str(self.parent))
         changed, value = imgui.input_int("ID", self.id)
         if changed:
             delta = value - self.id

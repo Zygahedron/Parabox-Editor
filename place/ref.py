@@ -138,7 +138,8 @@ class Ref:
             draw_list.add_text(x + width/20, y + height/30, 0xffffffff, str(self.id))
 
     def menu(self, level):
-        imgui.bullet_text(str(self))
+        if Design.placedebug:
+            imgui.bullet_text(str(self))
         if self.is_block_ref():
             self.get_orig().menu(level)
             return

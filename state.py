@@ -3,6 +3,7 @@ class Design:
     grid = False
     gridstyle = (0,0,0,.2)
     gridwidth = 1
+    placedebug = False
 class UsefulMod:
     def __init__(self):
         self.warn = False
