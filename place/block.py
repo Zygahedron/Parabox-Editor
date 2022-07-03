@@ -28,6 +28,8 @@ class Block:
         self.children = []
         self.window_size = 130
         self.exit = None
+        self.refs = []
+        self.level = level
         # UsefulMod (Internal)
         if not "purge" in kwargs:
             if "usefulTags" in kwargs:
@@ -46,11 +48,15 @@ class Block:
         return {"usefulTags": self.usefulTags.copy(), "usefulWrap": self.usefulWrap}
     def __repr__(self):
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
-
+    def get_refs(self):
+        for ref in self.refs:
+            if ref.parent == None or ref.id != self.id:
+                self.refs.remove(ref)
+        return self.refs
     def copy(self, level, held=False):
 
         if self.fillwithwalls: return self.full_copy(level) # duplicate solid blocks
-        if (held or self.parent): # if I already exist somewhere:
+        if (held or self.parent or (self.exit and self.exit.id == self.id and self.exit.parent is not None)): # if I already exist somewhere:
             # return ref to self
             return self.make_ref(level)
         else: # if I don't exist anywhere:
@@ -176,20 +182,49 @@ class Block:
         self.children.remove(child)
         return child
 
-    def place_child(self, x, y, child):
+    def place_child(self, x, y, child, refcheck=True):
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
             return
         if type(child) == Floor:
             self.children.append(child)
         else:
             self.children.insert(0, child)
-        child.parent = self
+            child.parent = self
+            # check if exitref but could be normal block
+            if type(child) == Ref and child.exitblock and not child.infexit and not child.infenter and refcheck:
+                self.remove_child(child)
+                self.place_child(x, y, self.level.blocks[child.id])
+                return
+            # See if block is deep child of itself
+            # If so, change child self to exit ref
+            if type(child) == Block:
+                # If block being put in self
+                if child.id == self.id:
+                    self.remove_child(self)
+                    exit_ref = self.make_ref(self.level, False)
+                    self.place_child(x, y, exit_ref, False)
+                    return
+                # Check for deep child
+                elif self.parent:
+                    turn_ref = False
+                    curr = self.parent
+                    while curr != None:
+                        if curr.id == self.id:
+                            turn_ref = True
+                            break
+                        curr = curr.parent
+                    if turn_ref:
+                        parent = self.parent
+                        parent.remove_child(self)
+                        exit_ref = self.make_ref(self.level, False)
+                        parent.place_child(exit_ref.x, exit_ref.y, exit_ref, False)
         child.x = x
         child.y = y
 
     def menu(self, level):
         imgui.bullet_text(str(self))
         imgui.bullet_text("Exit:"+str(self.exit))
+        imgui.bullet_text("Par:"+str(self.parent))
         changed, value = imgui.input_int("ID", self.id)
         if changed:
             delta = value - self.id

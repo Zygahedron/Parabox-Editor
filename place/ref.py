@@ -5,6 +5,7 @@ from .utils import to_bool, draw_infinity, draw_epsilon, draw_shine, draw_eyes, 
 
 class Ref:
     def __init__(self, level, x, y, id, exitblock, infexit, infexitnum, infenter, infenternum, infenterid, player, possessable, playerorder, fliph, floatinspace, specialeffect, area_name = None, **kwargs):
+        self.level = level
         self.x = int(x)
         self.y = int(y)
         self.id = int(id)
@@ -12,6 +13,7 @@ class Ref:
         if self.exitblock and not "decoy" in kwargs and self.id in level.blocks:
             block = level.blocks[self.id]
             if block.exit:
+                # Revoke exit privileges
                 block.exit.exitblock = False
             block.exit = self
         self.infexit = to_bool(infexit)
@@ -44,7 +46,10 @@ class Ref:
     # UsefulMod (Always Enabled Internal)
     def get_useful(self):
         return {"usefulTags": self.usefulTags.copy()}
-
+    def is_block_ref(self):
+        return self.exitblock and not self.infenter and not self.infexit
+    def get_orig(self):
+        return self.level.blocks[self.id]
     def __repr__(self):
         return f'<Reference of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id}>" if self.parent is not None else None}>'
 
@@ -77,10 +82,14 @@ class Ref:
         return refText
 
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
+        
         border = min(width,height)/Design.thick
         border_padding = (min(width,height)/Design.thick) * depth<=3
         if self.id in level.blocks:
             orig = level.blocks[self.id]
+            if self.is_block_ref():
+                orig.draw(draw_list, x, y, width, height, level, depth, fliph)
+                return
             draw_list.add_rect_filled(x+border_padding/3, y+border_padding/3, x+width-border_padding/3, y+height-border_padding/3, orig.color(level, 1 if orig.fillwithwalls else 0.5))
             draw_list.add_rect(x+border_padding/2, y+border_padding/2, x+width-border_padding/2, y+height-border_padding/2, 0xff000000, thickness=border)
             orig.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
@@ -130,6 +139,9 @@ class Ref:
 
     def menu(self, level):
         imgui.bullet_text(str(self))
+        if self.is_block_ref():
+            self.get_orig().menu(level)
+            return
         changed, value = imgui.input_int("ID", self.id)
         if changed:
             self.id = value

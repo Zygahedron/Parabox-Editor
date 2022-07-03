@@ -17,7 +17,6 @@ class Level:
         self.level_number = level_number
         self.difficulty = int(difficulty)
         self.possess_fx = possess_fx
-        self.roots = []
         self.blocks = {}
         self.next_free = 0
         self.credits = credits
@@ -41,21 +40,16 @@ class Level:
         self.metadata["custom_level_music"] = -1 if "custom_level_music" not in self.metadata else int(self.metadata["custom_level_music"])
         self.metadata["custom_level_palette"] = -1 if "custom_level_palette" not in self.metadata else int(self.metadata["custom_level_palette"])
         # UsefulMod (Internal)
-        self.metadata["winfz_sensitivity"] = "winfz_sensitivity" in self.metadata and self.metadata["winfz_sensitivity"] == "1" and not usefulmod.purge
-        self.metadata["white_eyes"] = "white_eyes" in self.metadata and self.metadata["white_eyes"] == "1" and not usefulmod.purge
-        self.metadata["banish_fix"] = "banish_fix" in self.metadata and self.metadata["banish_fix"] == "1" and not usefulmod.purge
-        self.metadata["ifzeat_fix"] = "ifzeat_fix" in self.metadata and self.metadata["ifzeat_fix"] == "1" and not usefulmod.purge
-        self.metadata["epsi_fix"] = "epsi_fix" in self.metadata and self.metadata["epsi_fix"] == "1"
-        if self.metadata["winfz_sensitivity"] or self.metadata["white_eyes"] or self.metadata["banish_fix"] or self.metadata["ifzeat_fix"] or self.metadata["epsi_fix"] and not usefulmod.purge:
-                # UsefulState
+        for usefulmetadata in ["winfz_sensitivity", "white_eyes", "banish_fix", "ifzeat_fix", "epsi_fix"]:
+            self.metadata[usefulmetadata] = usefulmetadata in self.metadata and self.metadata[usefulmetadata] == 1 and not usefulmod.purge
+            if self.metadata[usefulmetadata] and not usefulmod.purge:
                 useful_warn = True
         
-
         data = data.split("\n")
         indent = 0
         last_block = None
         parent = None
-        ref_exits = {}
+        refs = []
         kwargs = {"usefulTags":[]}
         for line in data:
             # UsefulState
@@ -72,7 +66,7 @@ class Level:
                 if type(last_block) == Block:
                     parent = last_block
                 else:
-                    raise "Error parsing level: Indent after non-Block"
+                    raise Exception('Error parsing level: Indent after non-Block')
             elif indent < last_indent:
                 for _ in range(last_indent - indent):
                     parent = parent.parent
@@ -86,23 +80,23 @@ class Level:
                 block.parent = parent
                 if parent:
                     parent.place_child(int(block.x), int(block.y), block)
-                else:
-                    self.roots.append(block)
                 last_block = block
                 if block.fillwithwalls != 1:
                     if not int(block.id) in self.blocks:
                         self.blocks[int(block.id)] = block
                     else:
+                        # TODO why print?
                         print("duplicate block with id " + str(block.id))
             elif block_type == "Ref":
                 ref = Ref(self, *args, **kwargs)
                 kwargs = {"usefulTags":[]}
-                if int(ref.exitblock) and not int(ref.infenter):
-                    ref_exits[int(ref.id)] = ref
+                if not int(ref.infenter):
+                    refs.append(ref)
                 if parent:
                     parent.place_child(int(ref.x), int(ref.y), ref)
-                else:
-                    self.roots.append(ref)
+                else: 
+                    # TODO this is a fatal loading error. Add debug message
+                    pass
                 last_block = ref
             elif block_type == "Wall":
                 wall = Wall(*args)
@@ -127,14 +121,15 @@ class Level:
                     kwargs["usefulTags"].append(block_type)
             else:
                 pass
-        
+        for ref in refs:
+            self.blocks[ref.id]
         # replace exitable refs with original blocks
-        for id, ref in ref_exits.items():
-            parent = ref.parent
-            parent.exit = None
-            if parent is not None:
-                parent.remove_child(ref)
-                parent.place_child(ref.x, ref.y, self.blocks[id])
+        #for id, ref in ref_exits.items():
+            #parent = ref.parent
+            #parent.exit = None
+            #if parent is not None:
+                #parent.remove_child(ref)
+                #parent.place_child(ref.x, ref.y, self.blocks[id])
         if useful_warn and not usefulmod.enabled and not usefulmod.purge:
             usefulmod.warn = True
         usefulmod.purge = False
