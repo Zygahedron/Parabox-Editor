@@ -1,5 +1,5 @@
 import imgui, colorsys
-from .utils import to_bool, draw_epsilon, draw_shine, draw_eyes, draw_weight, draw_pin, useful_change, special_effects
+from .utils import to_bool, draw_epsilon, draw_shine, draw_eyes, draw_weight, draw_pin, useful_change, special_effects, inbounds
 from state import Design, usefulmod
 from .palette import Palette
 from .ref import Ref
@@ -27,7 +27,7 @@ class Block:
         self.parent = None
         self.children = []
         self.window_size = 130
-        self.exit = None
+        self.exitref = None
         self.refs = []
         self.level = level
         # UsefulMod (Internal)
@@ -57,11 +57,19 @@ class Block:
     def copy(self, level, held=False):
 
         if self.fillwithwalls: return self.full_copy(level) # duplicate solid blocks
-        if (held or self.parent or (self.exit and self.exit.id == self.id and self.exit.parent is not None)): # if I already exist somewhere:
+        # TODO why?
+        if (held or self.parent or (self.exitref and self.exitref.id == self.id and self.exitref.parent is not None)): # if I already exist somewhere:
+            # Check if I exist out bounds of a parent remove and return block
+            if self.parent and not inbounds(self):
+                self.parent.remove_child(self)
+                return self
+            elif (self.exitref and self.exitref.id == self.id and self.exitref.parent is not None):
+                if not inbounds(self.exitref):
+                    self.exitref.parent.remove_child(self.exitref)
+                    return self
             # return ref to self
             return self.make_ref(level)
         else: # if I don't exist anywhere:
-            # check if I have an exitblock
             return self
 
     def full_copy(self, level, id=None):
@@ -79,7 +87,7 @@ class Block:
     def save(self, level, indent, saved_blocks):
         if self in saved_blocks and not self.fillwithwalls:
             ref = self.make_ref(level, False, True).save(level, indent, saved_blocks)
-            self.exit = None
+            self.exitref = None
             return ref
         else:
             saved_blocks.append(self)
@@ -104,6 +112,8 @@ class Block:
             if min(inner_width,inner_height) < 1 or depth > 10:
                 return
             for child in self.children:
+                if not inbounds(child):
+                    continue
                 if fliph:
                     child.draw(draw_list, x + (self.width - 1 - child.x) * inner_width, y + (self.height - 1 - child.y) * inner_height, inner_width, inner_height, level, depth + 1, True)
                 else:
@@ -126,12 +136,12 @@ class Block:
                     draw_list.add_line(x,y+horz*height/self.height,x+height,y+horz*height/self.height,imgui.get_color_u32_rgba(*Design.gridstyle), Design.gridwidth)
             self.draw_children(draw_list, x, y, width, height, level, depth, fliph ^ self.fliph)
         
-        if self.exit and depth > -1:
-            if self.exit.infenter:
-                w = width / (self.exit.infenternum + 1) * 1.3
-                h = height / (self.exit.infenternum + 1)
+        if self.exitref and depth > -1:
+            if self.exitref.infenter:
+                w = width / (self.exitref.infenternum + 1) * 1.3
+                h = height / (self.exitref.infenternum + 1)
                 h2 = h * 1.3
-                for i in range(self.exit.infenternum + 1):
+                for i in range(self.exitref.infenternum + 1):
                     draw_epsilon(draw_list, x + width/2 - w/2, y + (h - h2)/2 + i*h, w, h2)
                 #draw_list.add_rect(x, y, x + width, y + height, 0xff3f3f3f, thickness=border)
                 #draw_list.add_rect_filled(x, y, x + width, y + height, 0x3fffffff)
@@ -140,7 +150,8 @@ class Block:
         if self.fliph and depth >= 0:
             draw_shine(draw_list, x, y, width, height, fliph ^ self.fliph)
         # Useful Mod (Always Enabled Internal)
-        if depth >= 0:
+        # TODO uncomment
+        if True: # depth >= 0:
             if self.usefulTags and "?WEI" in self.usefulTags:
                 draw_weight(draw_list, x, y, width, height)
             if self.usefulTags and "?PIN" in self.usefulTags:
@@ -225,7 +236,7 @@ class Block:
     def menu(self, level):
         if Design.placedebug:
             imgui.bullet_text(str(self))
-            imgui.bullet_text("Exit:"+str(self.exit))
+            imgui.bullet_text("Exit:"+str(self.exitref))
             imgui.bullet_text("Par:"+str(self.parent))
         changed, value = imgui.input_int("ID", self.id)
         if changed:

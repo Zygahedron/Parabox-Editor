@@ -13,10 +13,10 @@ class Ref:
         self.exitblock = to_bool(exitblock)
         if self.exitblock and not "decoy" in kwargs and self.id in level.blocks:
             block = level.blocks[self.id]
-            if block.exit:
+            if block.exitref:
                 # Revoke exit privileges
-                block.exit.exitblock = False
-            block.exit = self
+                block.exitref.exitblock = False
+            block.exitref = self
         self.infexit = to_bool(infexit)
         self.infexitnum = int(infexitnum)
         self.infenter = to_bool(infenter)
@@ -164,11 +164,11 @@ class Ref:
             orig = level.blocks[self.id]
             if orig:
                 if value:
-                    if orig.exit:
-                        orig.exit.exitblock = False
-                    orig.exit = self
-                elif orig.exit == self:
-                    orig.exit = None
+                    if orig.exitref:
+                        orig.exitref.exitblock = False
+                    orig.exitref = self
+                elif orig.exitref == self:
+                    orig.exitref = None
                 self.exitblock = value
             
         changed, value = imgui.combo("Reference Type", 2 if not (self.infexit or self.infenter) else int(self.infenter), ['Infinite Exit','Infinite Enter','Clone'])
