@@ -122,14 +122,9 @@ class Level:
             else:
                 pass
         for ref in refs:
+            # Some refs may not have been added to their blocks because the block did not exist when they were made.
+            # Add them again manually (set so no duplicates)
             self.blocks[ref.id].refs.add(ref)
-        # replace exitable refs with original blocks
-        #for id, ref in ref_exits.items():
-            #parent = ref.parent
-            #parent.exit = None
-            #if parent is not None:
-                #parent.remove_child(ref)
-                #parent.place_child(ref.x, ref.y, self.blocks[id])
         if useful_warn and not usefulmod.enabled and not usefulmod.purge:
             usefulmod.warn = True
         usefulmod.purge = False
