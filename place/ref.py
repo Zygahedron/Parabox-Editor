@@ -46,7 +46,7 @@ class Ref:
         # Tell the world you (the block you reference) that you exist
         if level.blocks[self.id]:
             orig = level.blocks[self.id]
-            orig.refs.append(self)
+            orig.refs.add(self)
             # Prevent 10000 unused refs in a blocks ref array without causing too much
             # trouble for large ref amounts by checking for unused refs if ref length is a
             # square number more than 15

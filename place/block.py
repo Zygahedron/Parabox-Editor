@@ -28,7 +28,7 @@ class Block:
         self.children = []
         self.window_size = 130
         self.exitref = None
-        self.refs = []
+        self.refs = set()
         self.level = level
         # UsefulMod (Internal)
         if not "purge" in kwargs:
@@ -241,12 +241,12 @@ class Block:
         changed, value = imgui.input_int("ID", self.id)
         if changed:
             delta = value - self.id
-            while value in [block.id for block in level.blocks.values()]:
+            while value in [block.id for block in level.blocks.values()] :
                 value += delta
             # Get refs before our ID changes
             
             refs = self.get_refs()
-            del level.blocks[self.id]
+            level.blocks.pop(self.id, None)
             self.id = value
             level.blocks[self.id] = self
             for ref in refs:

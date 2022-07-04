@@ -62,12 +62,12 @@ class Editor:
             except (FileNotFoundError, KeyError):
                 pass
         with open(self.level_name) as file:
-            try:
+            #try:
                 self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
             # FIXXX
-            except Exception as Err:
-                print(Err)
-                self.level_invalid=True
+            #except Exception as Err:
+            #    print(Err)
+            #    self.level_invalid=True
                 
                 
     def save_level(self):
@@ -365,85 +365,88 @@ class Editor:
         self.hovered = None
 
         if self.level:
-            for block in self.level.blocks.values():
-                if block.fillwithwalls or block.width <= 0 or block.height <= 0:
-                    if self.menuing and self.menuing[0] == block:
-                        self.menuing = None
-                    continue
-                imgui.set_next_window_size(block.window_size, round((block.window_size - 24) / block.width * block.height + 43))
-                imgui.set_next_window_position(
-                    (30 + int(block.id) * 150) % (imgui.get_io().display_size.x - 150),
-                    50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*200,
-                    condition=imgui.APPEARING
-                )
-                if imgui.begin(str(block.id) + " : " + self.level.name):
-                    if imgui.begin_child("nodrag", 0, 0, True, imgui.WINDOW_NO_MOVE):
-                        draw_list = imgui.get_window_draw_list()
-                        x, y = imgui.get_window_position()
-                        x += 4
-                        y += 4
-                        w, h = imgui.get_content_region_available()
-                        w += 8
-                        block.draw(draw_list, x, y, w, w / block.width * block.height, self.level, -1, block.fliph)
-                        pos = imgui.get_mouse_position()
-                        px = int((pos.x - x) / (w / block.width))
-                        py = block.height - int(math.ceil((pos.y - y) / max((h / block.height),0.01)))
-                        shift = imgui.get_io().key_shift
-                        if imgui.is_window_hovered():
-                            self.hovered = (block, px, py)
-                            if imgui.is_mouse_clicked() or (shift and imgui.is_mouse_down() and self.hovered != self.last_hovered):
-                                pickup = block.get_child(px, py)
-                                last_held = self.cursor_held
-                                if self.cursor_held:
-                                    if shift:
-                                        to_place = self.cursor_held.copy(self.level, True)
-                                    else:
-                                        to_place = self.cursor_held
-                                        self.cursor_held = None
-                                    block.place_child(px, py, to_place)
-                                if pickup:
-                                    if last_held and ((type(pickup) == Floor) != (type(last_held) == Floor)):
-                                        pass # only one is floor, they can coexist
-                                    else:
-                                        block.remove_child(pickup)
+            try:
+                for block in self.level.blocks.values():
+                    if block.fillwithwalls or block.width <= 0 or block.height <= 0:
+                        if self.menuing and self.menuing[0] == block:
+                            self.menuing = None
+                        continue
+                    imgui.set_next_window_size(block.window_size, round((block.window_size - 24) / block.width * block.height + 43))
+                    imgui.set_next_window_position(
+                        (30 + int(block.id) * 150) % (imgui.get_io().display_size.x - 150),
+                        50 + int((30 + int(block.id) * 150) / (imgui.get_io().display_size.x - 150))*200,
+                        condition=imgui.APPEARING
+                    )
+                    if imgui.begin(str(block.id) + " : " + self.level.name):
+                        if imgui.begin_child("nodrag", 0, 0, True, imgui.WINDOW_NO_MOVE):
+                            draw_list = imgui.get_window_draw_list()
+                            x, y = imgui.get_window_position()
+                            x += 4
+                            y += 4
+                            w, h = imgui.get_content_region_available()
+                            w += 8
+                            block.draw(draw_list, x, y, w, w / block.width * block.height, self.level, -1, block.fliph)
+                            pos = imgui.get_mouse_position()
+                            px = int((pos.x - x) / (w / block.width))
+                            py = block.height - int(math.ceil((pos.y - y) / max((h / block.height),0.01)))
+                            shift = imgui.get_io().key_shift
+                            if imgui.is_window_hovered():
+                                self.hovered = (block, px, py)
+                                if imgui.is_mouse_clicked() or (shift and imgui.is_mouse_down() and self.hovered != self.last_hovered):
+                                    pickup = block.get_child(px, py)
+                                    last_held = self.cursor_held
+                                    if self.cursor_held:
                                         if shift:
-                                            pickup = None
+                                            to_place = self.cursor_held.copy(self.level, True)
                                         else:
-                                            self.cursor_held = pickup
-                                            self.clicked = self.hovered
-                            elif not shift and imgui.is_mouse_released() and self.clicked and self.cursor_held and self.hovered != self.clicked:
-                                clash = block.get_child(px, py)
-                                if not clash or ((type(clash) == Floor) != (type(self.cursor_held) == Floor)):
-                                    block.place_child(px, py, self.cursor_held)
-                                    self.cursor_held = None
-                            if imgui.is_mouse_released():
-                                self.clicked = None
-                        if (self.menuing or self.hovered or [0])[0] == block:
-                            if imgui.begin_popup_context_window():
-                                if not self.menuing:
-                                    self.menuing = self.hovered
-                                parent, px, py = self.menuing
-                                has_floor = False
-                                first = True
-                                for block in parent.get_children(px, py):
-                                    if first:
-                                        first = False
-                                    else:
-                                        imgui.separator()
-                                    if type(block) == Floor:
-                                        has_floor = True
-                                    block.menu(self.level)
-                                if not has_floor:
-                                    if not first:
-                                        imgui.separator()
-                                    Floor.empty_menu(self.level, parent, px, py)
-                                imgui.end_popup()
-                            else:
-                                self.menuing = None
-                    imgui.end_child()
-                    if type(block) == Block and block.window_size != imgui.get_window_width():
-                        block.window_size = imgui.get_window_width()
-                imgui.end()
+                                            to_place = self.cursor_held
+                                            self.cursor_held = None
+                                        block.place_child(px, py, to_place)
+                                    if pickup:
+                                        if last_held and ((type(pickup) == Floor) != (type(last_held) == Floor)):
+                                            pass # only one is floor, they can coexist
+                                        else:
+                                            block.remove_child(pickup)
+                                            if shift:
+                                                pickup = None
+                                            else:
+                                                self.cursor_held = pickup
+                                                self.clicked = self.hovered
+                                elif not shift and imgui.is_mouse_released() and self.clicked and self.cursor_held and self.hovered != self.clicked:
+                                    clash = block.get_child(px, py)
+                                    if not clash or ((type(clash) == Floor) != (type(self.cursor_held) == Floor)):
+                                        block.place_child(px, py, self.cursor_held)
+                                        self.cursor_held = None
+                                if imgui.is_mouse_released():
+                                    self.clicked = None
+                            if (self.menuing or self.hovered or [0])[0] == block:
+                                if imgui.begin_popup_context_window():
+                                    if not self.menuing:
+                                        self.menuing = self.hovered
+                                    parent, px, py = self.menuing
+                                    has_floor = False
+                                    first = True
+                                    for block in parent.get_children(px, py):
+                                        if first:
+                                            first = False
+                                        else:
+                                            imgui.separator()
+                                        if type(block) == Floor:
+                                            has_floor = True
+                                        block.menu(self.level)
+                                    if not has_floor:
+                                        if not first:
+                                            imgui.separator()
+                                        Floor.empty_menu(self.level, parent, px, py)
+                                    imgui.end_popup()
+                                else:
+                                    self.menuing = None
+                        imgui.end_child()
+                        if type(block) == Block and block.window_size != imgui.get_window_width():
+                            block.window_size = imgui.get_window_width()
+                    imgui.end()
+            except RuntimeError:
+                pass
 
             window_size = imgui.get_io().display_size
             imgui.set_next_window_size(window_size.x - 60, 80, condition=imgui.APPEARING)

@@ -122,7 +122,7 @@ class Level:
             else:
                 pass
         for ref in refs:
-            self.blocks[ref.id]
+            self.blocks[ref.id].refs.add(ref)
         # replace exitable refs with original blocks
         #for id, ref in ref_exits.items():
             #parent = ref.parent
