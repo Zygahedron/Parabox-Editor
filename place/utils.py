@@ -1,6 +1,7 @@
 from math import cos, pi, floor
 import time
 def inbounds(place):
+    if not place.parent: return True
     return 0 <= place.x < place.parent.width and 0 <= place.y < place.parent.height
 def useful_change(_self, tag, state):
     if state:
