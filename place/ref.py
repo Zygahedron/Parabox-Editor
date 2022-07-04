@@ -44,7 +44,7 @@ class Ref:
         else:
                 self.usefulTags = []
         # Tell the world you (the block you reference) that you exist
-        if level.blocks[self.id]:
+        if self.id in level.blocks:
             orig = level.blocks[self.id]
             orig.refs.add(self)
             # Prevent 10000 unused refs in a blocks ref array without causing too much
