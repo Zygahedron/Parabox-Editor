@@ -12,7 +12,7 @@ class HubTools:
     def menu(self):
         if imgui.button("Quick Fix Areas"):
             self.troubleshoot = True
-            self.validate_areadata(self.editor.level)
+            self.fix_areadata(self.editor.level)
     def show(self):
         if self.troubleshoot:
             # Check all things in area_data
@@ -24,7 +24,7 @@ class HubTools:
         if self.troubleshoot and not self.show_hub: return True
     def hidePalette(self):
         if self.troubleshoot and not self.show_palette: return True
-    def validate_areadata(self, level):
+    def fix_areadata(self, level):
         # area data found
         area_data = ""
         count = 0
@@ -35,7 +35,6 @@ class HubTools:
         else: 
             with open('area_data.txt', 'w'):
                 pass
-        print(level.blocks)
         refs = []
         for block in level.blocks.values():
             for child in block.children:

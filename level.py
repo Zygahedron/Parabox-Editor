@@ -163,6 +163,7 @@ class Level:
         saved_blocks = []
         seen = []
         areas = []
+        area_ids = []
         while len(to_save):
             current = to_save[0]
             seen.append(current)
@@ -174,7 +175,9 @@ class Level:
                     os.remove(f'{Path(self.name).stem}.png')
                 for child in current.children:
                     if type(child) == Ref:
-                        areas.append([child.area_name, child.area_music])
+                        if child.id not in area_ids:
+                            areas.append([child.area_name, child.area_music])
+                            area_ids.append(child.id)
             data += current.save(self, 0, saved_blocks)
             for block in saved_blocks:
                 if block in to_save:
