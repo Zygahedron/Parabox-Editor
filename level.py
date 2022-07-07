@@ -124,7 +124,8 @@ class Level:
         for ref in refs:
             # Some refs may not have been added to their blocks because the block did not exist when they were made.
             # Add them again manually (set so no duplicates)
-            self.blocks[ref.id].refs.add(ref)
+            if ref.id in self.blocks:
+                self.blocks[ref.id].refs.add(ref)
         if useful_warn and not usefulmod.enabled and not usefulmod.purge:
             usefulmod.warn = True
         usefulmod.purge = False

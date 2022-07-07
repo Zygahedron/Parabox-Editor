@@ -30,6 +30,7 @@ class Block:
         self.exitref = None
         self.refs = set()
         self.level = level
+        self.show = True
         # UsefulMod (Internal)
         if not "purge" in kwargs:
             if "usefulTags" in kwargs:
@@ -199,6 +200,7 @@ class Block:
             return
         if type(child) == Floor:
             self.children.append(child)
+            child.parent = self
         else:
             self.children.insert(0, child)
             child.parent = self

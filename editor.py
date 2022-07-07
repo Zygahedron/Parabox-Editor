@@ -1,10 +1,9 @@
-import imp
 import imgui
 from level import *
 import style, glob, os, platform, traceback, colorsys, math, webbrowser, time
 from pathlib import Path
-from state import usefulmod
-from state import Design
+from state import usefulmod, Design
+import hubtools
 class Editor:
     def __init__(self):
         self.cursor_held = None
@@ -20,7 +19,7 @@ class Editor:
             Block(None, 0, 0, "-1", 1, 1, 0.1, 0.8, 1, 1, 1, 0, 0, 0, 0, 0, 0),
             Block(None, 0, 0, "-1", 1, 1, 0.9, 1, 0.7, 1, 1, 1, 1, 0, 0, 0, 0),
         ]
-        
+        self.hub = hubtools.HubTools(self)
         self.levels_folder = ""
         if platform.system() == "Windows":
             self.levels_folder = "~\Appdata\LocalLow\Patrick Traynor\Patrick's Parabox\custom_levels"
@@ -43,6 +42,9 @@ class Editor:
         imgui.get_io().ini_file_name = b""
 
     def loadlevel(self):
+        # Reset hubtools when we load a level
+        self.hub = hubtools.HubTools(self)
+        
         self.level_name = self.files[self.file_choice]
         hub_parent = False
         level_number = 0
@@ -124,11 +126,11 @@ class Editor:
             if imgui.begin_menu("Edit", self.level != None):
                 self.level.edit_menu()
                 imgui.end_menu()
-
-            if imgui.begin_menu("Hub Tools"):
-                imgui.bullet_text("Imagine there are hub tools here")
+            # Show hub tools menu and store data in hubstate
+            if self.level and self.level.is_hub and imgui.begin_menu("Hub Tools"):
+                self.hub.menu()
                 imgui.end_menu()
-
+            
             if imgui.begin_menu("Extra"):
                 # UsefulMod Extra
                 changed, value = imgui.checkbox("Enable UsefulMod", usefulmod.enabled)
@@ -363,13 +365,16 @@ class Editor:
 
         self.last_hovered = self.hovered
         self.hovered = None
-
+        # use hubstate to determine what is open and what windows we need to make
+        self.hub.show()
         if self.level:
             try:
                 for block in self.level.blocks.values():
                     if block.fillwithwalls or block.width <= 0 or block.height <= 0:
                         if self.menuing and self.menuing[0] == block:
                             self.menuing = None
+                        continue
+                    if self.hub.hideBlocks():
                         continue
                     imgui.set_next_window_size(block.window_size, round((block.window_size - 24) / block.width * block.height + 43))
                     imgui.set_next_window_position(
@@ -451,7 +456,7 @@ class Editor:
             window_size = imgui.get_io().display_size
             imgui.set_next_window_size(window_size.x - 60, 80, condition=imgui.APPEARING)
             imgui.set_next_window_position(30, window_size.y - 110, condition=imgui.APPEARING)
-            if imgui.begin("Palette"):
+            if not self.hub.hidePalette() and imgui.begin("Palette"):
                 if imgui.begin_child("nodrag", 0, 0, False, imgui.WINDOW_NO_MOVE):
 
                     w, h = imgui.get_content_region_available()
@@ -573,7 +578,7 @@ class Editor:
                         else:
                             self.menuing = None
                 imgui.end_child()
-            imgui.end()
+                imgui.end()
 
             if self.cursor_held:
                 x, y = imgui.get_mouse_position()
