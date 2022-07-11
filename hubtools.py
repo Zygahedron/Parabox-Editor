@@ -1,13 +1,10 @@
-import os
 import imgui
-from numpy import append
 from place.ref import Ref
 class HubTools:
     def __init__(self,editor):
         self.troubleshoot = False
         self.show_hub = False
         self.show_palette = False
-        self.hooked = []
         self.editor = editor
     def menu(self):
         if imgui.button("Quick Fix Areas"):
@@ -19,22 +16,11 @@ class HubTools:
             _, self.troubleshoot = imgui.begin("!!!", closable=True)
             imgui.bullet_text("Remember to save!")
             imgui.end()
-            
     def hideBlocks(self):
         if self.troubleshoot and not self.show_hub: return True
     def hidePalette(self):
         if self.troubleshoot and not self.show_palette: return True
     def fix_areadata(self, level):
-        # area data found
-        area_data = ""
-        count = 0
-        if os.path.exists('area_data.txt'):
-            with open('area_data.txt', 'r') as f:
-                area_data=f.readlines
-        # area data not found. How did you do this?
-        else: 
-            with open('area_data.txt', 'w'):
-                pass
         refs = []
         for block in level.blocks.values():
             for child in block.children:
@@ -57,6 +43,3 @@ class HubTools:
                 name = valid[id].area_name
             for ref in krefs[id]:
                 ref.area_name = name
-                
-                
-        
