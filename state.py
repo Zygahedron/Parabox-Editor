@@ -1,9 +1,10 @@
 class Design:
-    thick = 40
+    thick = 200
     grid = False
     gridstyle = (0,0,0,.2)
     gridwidth = 1
     placedebug = False
+    true_dupe = False
 class UsefulMod:
     def __init__(self):
         self.warn = False

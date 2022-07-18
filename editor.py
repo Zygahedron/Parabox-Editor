@@ -139,6 +139,9 @@ class Editor:
                 changed, value = imgui.checkbox("Gridlines", Design.grid)
                 if changed:
                     Design.grid = value
+                changed, value = imgui.checkbox("True Duplication", Design.true_dupe)
+                if changed:
+                    Design.true_dupe = value
                 if Design.grid:
                     if imgui.begin_menu("Gridlines Style"):
                         changed, value = imgui.color_edit4("Gridline Color",*Design.gridstyle)

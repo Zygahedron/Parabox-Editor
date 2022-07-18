@@ -1,4 +1,5 @@
 import imgui, colorsys
+from place.walls import Wall
 from .utils import to_bool, draw_epsilon, draw_shine, draw_eyes, draw_weight, draw_pin, useful_change, special_effects, inbounds
 from state import Design, usefulmod
 from .palette import Palette
@@ -55,7 +56,7 @@ class Block:
             if ref.parent == None or ref.id != self.id:
                 self.refs.remove(ref)
         return self.refs
-    def copy(self, level, held=False):
+    def copy(self, level=None, held=False):
 
         if self.fillwithwalls: return self.full_copy(level) # duplicate solid blocks
         # TODO why?
@@ -74,7 +75,18 @@ class Block:
             return self
 
     def full_copy(self, level, id=None):
-        return Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, **self.get_useful())
+        if self.fillwithwalls or not Design.true_dupe: return Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, **self.get_useful())
+        base = Block(level, 0, 0, id if id else self.id, self.width, self.height, self.hue, self.sat, self.val, self.zoomfactor, self.fillwithwalls, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, **self.get_useful())
+        for place in self.children:
+            check = type(place)
+            if check == Floor or check == Wall:
+                base.place_child(place.x, place.y, place.copy(None))
+            if check == Block:
+                if place.id == -1:
+                    base.place_child(place.x, place.y, place.copy(None))
+            if check == Ref and place.exitblock == False:
+                base.place_child(place.x, place.y, place.copy(level))
+        return base
 
     def make_ref(self, level, new=True, saved=False):
         options = {"usefulTags":[]}
@@ -122,12 +134,11 @@ class Block:
     
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
         
-        border = min(width,height)/Design.thick
         border_padding = (min(width,height)/Design.thick) * depth<=5
         
         draw_list.add_rect_filled(x+border_padding/1.5, y+border_padding/1.5, x+width-border_padding/1.25, y+height-border_padding/1.25, self.color(level, 1 if self.fillwithwalls else 0.5))
         if depth >= 0: # don't draw outer border on block windows
-            draw_list.add_rect(x+border_padding/2, y+border_padding/2, x+width-border_padding/2, y+height-border_padding/2, 0xff000000, thickness=border+1)
+            draw_list.add_rect(x+border_padding/2, y+border_padding/2, x+width-border_padding/2, y+height-border_padding/2, 0xff000000, thickness=0)
             self.draw_children(draw_list, x+border_padding, y+border_padding, width-2*border_padding, height-2*border_padding, level, depth, fliph ^ self.fliph)
         else:
             if Design.grid:

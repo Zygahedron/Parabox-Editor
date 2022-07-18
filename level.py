@@ -99,7 +99,10 @@ class Level:
                     pass
                 last_block = ref
             elif block_type == "Wall":
-                wall = Wall(*args)
+                if len(args) > 6:
+                    wall = Wall(*args[:5],"_".join(args[5:]))
+                else:
+                    wall = Wall(*args)
                 if parent:
                     parent.place_child(int(wall.x), int(wall.y), wall)
                 else:

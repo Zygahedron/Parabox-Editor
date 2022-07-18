@@ -43,3 +43,11 @@ class HubTools:
                 name = valid[id].area_name
             for ref in krefs[id]:
                 ref.area_name = name
+        return krefs
+    def area_manager(self):
+        krefs = self.fix_areadata(self.editor.level)
+        
+        
+                
+                
+        
