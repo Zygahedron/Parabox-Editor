@@ -161,6 +161,7 @@ class Editor:
                 imgui.bullet_text("To create a new level, go to File > New.")
                 imgui.bullet_text("Left click a tile in the palette to grab it, or click the plus to make a new box.")
                 imgui.bullet_text("Holding down shift while placing a tile will let you draw multiple tiles at once,\nand while placing a box, it will let you place a clone of said box.")
+                imgui.bullet_text("Holding down \"a\" while placing a tile will let you draw multiple tiles in one spot")
                 imgui.bullet_text("Right click tiles, in the palette or in a box, to edit them.")
                 imgui.bullet_text("If you're confused with making hubs, watch")
                 imgui.same_line()
@@ -411,7 +412,7 @@ class Editor:
                                             self.cursor_held = None
                                         block.place_child(px, py, to_place)
                                     if pickup:
-                                        if last_held and ((type(pickup) == Floor) != (type(last_held) == Floor)):
+                                        if last_held and ((type(pickup) == Floor) != (type(last_held) == Floor)) or keyboard.a.down:
                                             pass # only one is floor, they can coexist
                                         else:
                                             block.remove_child(pickup)

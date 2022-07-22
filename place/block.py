@@ -51,7 +51,7 @@ class Block:
     def __repr__(self):
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
     def get_refs(self):
-        for ref in self.refs:
+        for ref in self.refs.copy():
             # This won't remove ref blocks (I checked)
             if ref.parent == None or ref.id != self.id:
                 self.refs.remove(ref)
@@ -134,7 +134,7 @@ class Block:
     
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
         
-        border_padding = (min(width,height)/Design.thick) * depth<=5
+        border_padding = 0
         
         draw_list.add_rect_filled(x+border_padding/1.5, y+border_padding/1.5, x+width-border_padding/1.25, y+height-border_padding/1.25, self.color(level, 1 if self.fillwithwalls else 0.5))
         if depth >= 0: # don't draw outer border on block windows
@@ -267,9 +267,13 @@ class Block:
         changed, value = imgui.input_int("Width", self.width)
         if changed and value > 0:
             self.width = value
+            if imgui.get_io().key_shift:
+                self.height = value
         changed, value = imgui.input_int("Height", self.height)
         if changed and value > 0:
             self.height = value
+            if imgui.get_io().key_shift:
+                self.width = value
         changed, value = imgui.input_float("Zoom Factor", self.zoomfactor)
         if changed:
             self.zoomfactor = value
