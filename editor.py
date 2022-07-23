@@ -64,12 +64,10 @@ class Editor:
             except (FileNotFoundError, KeyError):
                 pass
         with open(self.level_name) as file:
-            #try:
+            try:
                 self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
-            # FIXXX
-            #except Exception as Err:
-            #    print(Err)
-            #    self.level_invalid=True
+            except Exception as Err:
+                self.level_invalid=True
                 
                 
     def save_level(self):
