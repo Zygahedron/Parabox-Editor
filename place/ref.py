@@ -50,7 +50,7 @@ class Ref:
             # Prevent 10000 unused refs in a blocks ref array without causing too much
             # trouble for large ref amounts by checking for unused refs if ref length is a
             # square number more than 15
-            if len(orig.refs) > 15:
+            if len(orig.refs) >= 16:
                 num = math.sqrt(len(orig.refs))
                 if num == int(num):
                     # get ref function purges dead refs

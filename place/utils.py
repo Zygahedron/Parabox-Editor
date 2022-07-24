@@ -96,7 +96,7 @@ def draw_weight(draw_list, x, y, width, height):
     draw_list.add_polyline([(x + u*width, y + v*height) for u, v in fpl], 0x1f000000, closed=True, thickness=min(width,height)/2.5)
 
 def draw_pin(draw_list, x, y, width, height):
-    draw_list.add_polyline([(x + u*width, y + v*height) for u, v in [(0.5,0.4),(0.37,0.26),(0.63,0.26)]], 0x8fffffff, closed=True, thickness=min(width,height)/9)
+    draw_list.add_poly_filled([(x + u*width, y + v*height) for u, v in [(0.25,0.25),(0.5,0.5),(0.75,0.25)]], 0x8fffffff)
 special_effects = {
     0: '0:  None',
     1: '1:  Focus on this block (Challenge 38)',
