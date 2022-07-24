@@ -2,12 +2,14 @@
 import multiprocessing
 import glfw
 import OpenGL.GL as gl
-
+import sys
+import os
+sys.path.append(os.getcwd())
 import imgui
 from imgui.integrations.glfw import GlfwRenderer
 
 import glob
-import os
+
 import platform
 import traceback
 
