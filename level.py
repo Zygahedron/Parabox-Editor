@@ -27,21 +27,28 @@ class Level:
             [metadata, data] = data.split("\n#\n")
         except ValueError:
             raise Exception('Selected file isn\'t a level!')
-
+        # Split metadata into [first_word, rest_of_line]
         metadata = [e.split(" ", 1) for e in metadata.split("\n")]
+        # Self.metadata = {metadata_key: metadata_value}
         self.metadata = {e[0]: e[1] for e in metadata}
+        
+        # Set Set attempt order 
         if not "attempt_order" in self.metadata: self.metadata["attempt_order"] = "push,enter,eat,possess"
         read_metadata = self.metadata["attempt_order"].split(",")
         self.metadata["attempt_order"] = [[a,True] for a in read_metadata]
         self.metadata["attempt_order"].extend([[a,False] for a in ['push','enter','eat','possess'] if a not in read_metadata])
+        
+        # Set shed,inner_push, and draw_style
         self.metadata["shed"] = "shed" in self.metadata and self.metadata["shed"] == "1"
         self.metadata["inner_push"] = "inner_push" in self.metadata and self.metadata["inner_push"] == "1"
         if not "draw_style" in self.metadata: self.metadata["draw_style"] = "normal"
+        
         self.metadata["custom_level_music"] = -1 if "custom_level_music" not in self.metadata else int(self.metadata["custom_level_music"])
         self.metadata["custom_level_palette"] = -1 if "custom_level_palette" not in self.metadata else int(self.metadata["custom_level_palette"])
+        
         # UsefulMod (Internal)
         for usefulmetadata in ["winfz_sensitivity", "white_eyes", "banish_fix", "ifzeat_fix", "epsi_fix"]:
-            self.metadata[usefulmetadata] = usefulmetadata in self.metadata and self.metadata[usefulmetadata] == 1 and not usefulmod.purge
+            self.metadata[usefulmetadata] = usefulmetadata in self.metadata and self.metadata[usefulmetadata] == "1" and not usefulmod.purge
             if self.metadata[usefulmetadata] and not usefulmod.purge:
                 useful_warn = True
         
@@ -85,7 +92,6 @@ class Level:
                     if not int(block.id) in self.blocks:
                         self.blocks[int(block.id)] = block
                     else:
-                        # TODO why print?
                         print("duplicate block with id " + str(block.id))
             elif block_type == "Ref":
                 ref = Ref(self, *args, **kwargs)
