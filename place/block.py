@@ -1,11 +1,12 @@
 import imgui, colorsys
 from place.walls import Wall
 from .utils import to_bool, draw_epsilon, draw_shine, draw_eyes, draw_weight, draw_pin, useful_change, special_effects, inbounds
-from state import Design, usefulmod
+from state import Design, UIstate, usefulmod
 from .palette import Palette
 from .ref import Ref
 from .floor import Floor
 from random import random
+import math
 class Block:
     def __init__(self, level, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, **kwargs):
         self.x = int(x)
@@ -251,19 +252,27 @@ class Block:
             imgui.bullet_text(str(self))
             imgui.bullet_text("Exit:"+str(self.exitref))
             imgui.bullet_text("Par:"+str(self.parent))
-        changed, value = imgui.input_int("ID", self.id)
-        if changed:
-            delta = value - self.id
-            while value in [block.id for block in level.blocks.values()] :
-                value += delta
-            # Get refs before our ID changes
-            
-            refs = self.get_refs()
-            level.blocks.pop(self.id, None)
-            self.id = value
-            level.blocks[self.id] = self
-            for ref in refs:
-                ref.id = value
+        try:
+            changed, value = imgui.input_int("ID", self.id, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+            if changed:
+                print(value)
+                if not UIstate.focused:
+                    print(self.id)
+                    UIstate.focused = True
+                    delta = math.copysign(1, value - self.id)
+                    while value in [block.id for block in level.blocks.values()] :
+                        value += delta
+                    # Get refs before our ID changes
+                    
+                    refs = self.get_refs()
+                    level.blocks.pop(self.id, None)
+                    self.id = value
+                    level.blocks[self.id] = self
+                    for ref in refs:
+                        ref.id = value
+                    UIstate.focused = False
+        except:
+            pass
         changed, value = imgui.input_int("Width", self.width)
         if changed and value > 0:
             self.width = value

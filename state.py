@@ -1,3 +1,5 @@
+class UIstate:
+    focused = False
 class Design:
     thick = 200
     grid = False

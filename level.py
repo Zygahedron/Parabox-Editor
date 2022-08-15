@@ -51,6 +51,7 @@ class Level:
         parent = None
         refs = []
         kwargs = {"usefulTags":[]}
+        stack = []
         for line in data:
             # UsefulState
             if usefulmod.purge:
@@ -62,15 +63,19 @@ class Level:
                 pass
             elif indent == 0:
                 parent = None
+                stack = []
             elif indent > last_indent:
                 if type(last_block) == Block:
                     parent = last_block
+                    stack.append(last_block)
                 else:
                     raise Exception('Error parsing level: Indent after non-Block')
             elif indent < last_indent:
                 for _ in range(last_indent - indent):
                     parent = parent.parent
-
+                    stack.pop()
+            if parent == None and indent != 0:
+                parent = stack[-1]
             args = trimmed.split(" ")
             block_type = args.pop(0)
             if block_type == "Block":
