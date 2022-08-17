@@ -7,6 +7,7 @@ class Design:
     gridwidth = 1
     placedebug = False
     true_dupe = False
+    hub = False
 class UsefulMod:
     def __init__(self):
         self.warn = False

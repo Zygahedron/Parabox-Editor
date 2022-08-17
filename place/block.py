@@ -217,7 +217,8 @@ class Block:
             self.children.insert(0, child)
             child.parent = self
             # check if exitref but could be normal block
-            if type(child) == Ref and child.exitblock and not child.infexit and not child.infenter and refcheck and child.id in self.level.blocks:
+            if type(child) == Ref and (child.exitblock and not child.infexit and not child.infenter 
+                and refcheck and child.id in self.level.blocks and not Design.hub):
                 self.remove_child(child)
                 self.place_child(x, y, self.level.blocks[child.id])
                 return

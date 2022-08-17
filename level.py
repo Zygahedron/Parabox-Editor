@@ -9,10 +9,12 @@ from place.palette import Palette
 from place.floor import Floor
 from place.block import Block
 from place.ref import Ref
+from state import Design
 class Level:
     def __init__(self, name, data, level_number = -1, hub_parent = False, difficulty: int = 0, possess_fx = False, credits = ''):
         self.name = name
         self.is_hub = name == 'hub.txt'
+        Design.hub = self.is_hub
         self.hub_parent = hub_parent
         self.level_number = level_number
         self.difficulty = int(difficulty)

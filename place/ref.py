@@ -152,7 +152,7 @@ class Ref:
     def menu(self, level):
         if Design.placedebug:
             imgui.bullet_text(str(self))
-        if self.is_block_ref():
+        if self.is_block_ref() and not Design.hub:
             self.get_orig().menu(level)
             return
         changed, value = imgui.input_int("ID", self.id)
