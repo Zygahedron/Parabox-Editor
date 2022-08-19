@@ -11,7 +11,7 @@ from place.block import Block
 from place.ref import Ref
 from state import Design
 class Level:
-    def __init__(self, name, data, level_number = -1, hub_parent = False, difficulty: int = 0, possess_fx = False, credits = ''):
+    def __init__(self, name, data, level_number = -1, hub_parent = False, difficulty: int = 0, possess_fx = False, credits = '', **level_args):
         self.name = name
         self.is_hub = name == 'hub.txt'
         Design.hub = self.is_hub
@@ -28,7 +28,7 @@ class Level:
         try:
             [metadata, data] = data.split("\n#\n")
         except ValueError:
-            raise Exception('Selected file isn\'t a level!')
+            raise Exception('Selected file isn\'t a level/Loading Error!')
         # Split metadata into [first_word, rest_of_line]
         metadata = [e.split(" ", 1) for e in metadata.split("\n")]
         # Self.metadata = {metadata_key: metadata_value}
@@ -59,8 +59,18 @@ class Level:
         last_block = None
         parent = None
         refs = []
-        kwargs = {"usefulTags":[]}
+        kwargs = {}
+        kwargs["usefulTags"]=[]
         stack = []
+        if "area_data" in level_args:
+            raw_area_data = level_args["area_data"]
+            area_data_lines = raw_area_data.split("\n")
+            music={}
+            for line in area_data_lines:
+                area, musicnum = line.split(" ")
+                musicnum = int(musicnum)
+                music[area]=musicnum
+            kwargs["music"] = music
         for line in data:
             # UsefulState
             if usefulmod.purge:
@@ -90,7 +100,7 @@ class Level:
             if block_type == "Block":
                 block = Block(self, *args, **kwargs)
                 # For UsefulMod
-                kwargs = {"usefulTags":[]}
+                kwargs["usefulTags"]=[]
                 block.parent = parent
                 if parent:
                     parent.place_child(int(block.x), int(block.y), block)
@@ -102,7 +112,7 @@ class Level:
                         print("duplicate block with id " + str(block.id))
             elif block_type == "Ref":
                 ref = Ref(self, *args, **kwargs)
-                kwargs = {"usefulTags":[]}
+                kwargs["usefulTags"]=[]
                 if not int(ref.infenter):
                     refs.append(ref)
                 if parent:

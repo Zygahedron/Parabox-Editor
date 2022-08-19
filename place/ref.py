@@ -34,7 +34,9 @@ class Ref:
             self.area_name = area_name.replace(' ','_')
         else:
             self.area_name = None
-        self.area_music = 0
+        if "music" in kwargs and area_name in kwargs["music"]:
+            self.area_music = kwargs["music"][area_name]
+        else: self.area_music = 0
         # UsefulMod (Always Enabled Internal)
         if not "purge" in kwargs:
             if "usefulTags" in kwargs:

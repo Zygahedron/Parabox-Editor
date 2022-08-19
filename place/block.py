@@ -256,9 +256,7 @@ class Block:
         try:
             changed, value = imgui.input_int("ID", self.id, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if changed:
-                print(value)
                 if not UIstate.focused:
-                    print(self.id)
                     UIstate.focused = True
                     delta = math.copysign(1, value - self.id)
                     while value in [block.id for block in level.blocks.values()] :

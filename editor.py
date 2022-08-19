@@ -44,7 +44,7 @@ class Editor:
     def loadlevel(self):
         # Reset hubtools when we load a level
         self.hub = hubtools.HubTools(self)
-        
+        kwargs = {}
         self.level_name = self.files[self.file_choice]
         hub_parent = False
         level_number = 0
@@ -54,8 +54,13 @@ class Editor:
         if self.level_name != 'hub.txt':
             hub_parent = os.path.exists('puzzle_data.txt')
         else:
-            with open('credits.txt','r') as f:
-                credits = f.read()
+            try:
+                with open('credits.txt','r') as f:
+                    credits = f.read()
+            except:
+                credits = ""
+        if os.path.exists("area_data.txt"):
+            kwargs["area_data"] = open('area_data.txt', 'r').read()
         if hub_parent:
             try:
                 with open('puzzle_data.txt','r') as file:
@@ -65,8 +70,9 @@ class Editor:
                 pass
         with open(self.level_name) as file:
             try:
-                self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits)
+                self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits, **kwargs)
             except Exception as Err:
+                print(Err)
                 self.level_invalid=True
                 
                 
