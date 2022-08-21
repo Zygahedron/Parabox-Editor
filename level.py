@@ -148,9 +148,7 @@ class Level:
                     kwargs["usefulTags"].append(block_type)
             else:
                 pass
-        print(self.music)
         for idx, val in self.music.items():
-            print(idx)
             if idx in self.blocks:
                 self.blocks[idx].music = val
         for ref in refs:
