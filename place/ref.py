@@ -35,7 +35,7 @@ class Ref:
         else:
             self.area_name = None
         if "music" in kwargs and area_name in kwargs["music"]:
-            self.area_music = kwargs["music"][area_name]
+            self.level.music[self.id] = kwargs["music"][area_name]
         else: self.area_music = 0
         # UsefulMod (Always Enabled Internal)
         if not "purge" in kwargs:
@@ -58,6 +58,18 @@ class Ref:
                     # get ref function purges dead refs
                     orig.get_refs()
     # UsefulMod (Always Enabled Internal)
+    def get_music(self, default=None):
+        try:
+            music = self.get_orig().music
+            if music is None: return default
+            else: return music
+        except:
+            return None
+    def set_music(self, music):
+        try:
+            self.get_orig().music = music
+        except:
+            pass
     def get_useful(self):
         return {"usefulTags": self.usefulTags.copy()}
     def is_block_ref(self):
@@ -232,6 +244,6 @@ class Ref:
             changed, value = imgui.input_text("Area Name", self.area_name if self.area_name is not None else '', 256)
             if changed:
                 self.area_name = value if value != '' else None
-            changed, value = imgui.combo("Area Music",  self.area_music + 1, ["None", "Intro", "Enter", "Empty", "Eat", "Reference", "Center", "Clone", "Transfer", "Open", "Flip", "Cycle", "Swap", "Player", "Possess", "Wall", "Infinite Exit", "Infinite Enter", "Multi Infinite", "Reception", "Appendix", "Pause (buggy)", "Credits"])
+            changed, value = imgui.combo("Area Music",  self.get_music(-1) + 1, ["None", "Intro", "Enter", "Empty", "Eat", "Reference", "Center", "Clone", "Transfer", "Open", "Flip", "Cycle", "Swap", "Player", "Possess", "Wall", "Infinite Exit", "Infinite Enter", "Multi Infinite", "Reception", "Appendix", "Pause (buggy)", "Credits"])
             if changed:
-                self.area_music = value - 1
+                self.get_orig().music = value - 1

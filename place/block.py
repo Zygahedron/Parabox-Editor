@@ -33,6 +33,7 @@ class Block:
         self.refs = set()
         self.level = level
         self.show = True
+        self.music = None
         # UsefulMod (Internal)
         if not "purge" in kwargs:
             if "usefulTags" in kwargs:
@@ -253,6 +254,7 @@ class Block:
             imgui.bullet_text(str(self))
             imgui.bullet_text("Exit:"+str(self.exitref))
             imgui.bullet_text("Par:"+str(self.parent))
+            imgui.bullet_text("Music:"+str(self.music))
         try:
             changed, value = imgui.input_int("ID", self.id, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if changed:

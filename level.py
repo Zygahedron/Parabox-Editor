@@ -22,6 +22,7 @@ class Level:
         self.blocks = {}
         self.next_free = 0
         self.credits = credits
+        self.music = {}
         # UsefulState
         useful_warn = False
         #
@@ -147,6 +148,11 @@ class Level:
                     kwargs["usefulTags"].append(block_type)
             else:
                 pass
+        print(self.music)
+        for idx, val in self.music.items():
+            print(idx)
+            if idx in self.blocks:
+                self.blocks[idx].music = val
         for ref in refs:
             # Some refs may not have been added to their blocks because the block did not exist when they were made.
             # Add them again manually (set so no duplicates)
@@ -201,8 +207,9 @@ class Level:
                     os.remove(f'{Path(self.name).stem}.png')
                 for child in current.children:
                     if type(child) == Ref:
+                        # Only add each unique ID once
                         if child.id not in area_ids:
-                            areas.append([child.area_name, child.area_music])
+                            areas.append([child.area_name, child.get_music()])
                             area_ids.append(child.id)
             data += current.save(self, 0, saved_blocks)
             for block in saved_blocks:

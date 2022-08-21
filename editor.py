@@ -72,7 +72,7 @@ class Editor:
             try:
                 self.level = Level(self.level_name, file.read(), level_number, hub_parent, difficulty, bool(possess_vfx), credits, **kwargs)
             except Exception as Err:
-                print(Err)
+                print(traceback.format_exc())
                 self.level_invalid=True
                 
                 

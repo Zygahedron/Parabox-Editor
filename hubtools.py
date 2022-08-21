@@ -38,6 +38,8 @@ class HubTools:
             if ref.area_name != None and ref.area_name != "" and ref.area_name != "_" and ref.id not in valid:
                  valid[ref.id]=ref
         for id in krefs:
+            if krefs[id].get_music() == None:
+                krefs[id].set_music(0)
             name = "__"
             if id in valid:
                 name = valid[id].area_name
