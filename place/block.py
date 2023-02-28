@@ -7,6 +7,7 @@ from .ref import Ref
 from .floor import Floor
 from random import random
 import math
+from usefull.keywords import savekeys, umenu
 class Block:
     def __init__(self, level, x, y, id, width, height, hue, sat, val, zoomfactor, fillwithwalls, player, possessable, playerorder, fliph, floatinspace, specialeffect, **kwargs):
         self.x = int(x)
@@ -22,7 +23,7 @@ class Block:
         self.player = to_bool(player)
         self.possessable = to_bool(possessable)
         self.playerorder = int(playerorder)
-        self.fliph = to_bool(fliph)
+        self.fliph = int(fliph)
         self.floatinspace = to_bool(floatinspace)
         self.specialeffect = int(specialeffect)
         self.blinkoffset = random()*26
@@ -35,21 +36,14 @@ class Block:
         self.show = True
         self.music = None
         # UsefulMod (Internal)
-        if not "purge" in kwargs:
-            if "usefulTags" in kwargs:
-                self.usefulTags = kwargs["usefulTags"]
-            else:
-                self.usefulTags = []
-            if "usefulWrap" in kwargs:
-                self.usefulWrap = kwargs["usefulWrap"]
-            else:
-                self.usefulWrap = 0
-        else:
-            self.usefulTags = []
-            self.usefulWrap = 0
+        if "usefulTags" in kwargs: self.usefulTags = kwargs["usefulTags"]
+        else: self.usefulTags = []
+        if "usefulVal" in kwargs: self.usefulVal = kwargs["usefulVal"]
+        else: self.usefulVal = {}
     # UsefulMod (Always Enabled Internal)
+    # TODO fix usefulget.0
     def get_useful(self):
-        return {"usefulTags": self.usefulTags.copy(), "usefulWrap": self.usefulWrap}
+        return {"usefulTags": self.usefulTags.copy(), "usefulVal": self.usefulVal}
     def __repr__(self):
         return f'<Block of ID {self.id} at ({self.x},{self.y}) inside of {f"<{self.parent.__class__.__name__} of ID {self.parent.id} at ({self.x},{self.y})>" if self.parent is not None else None} with {len(self.children)} children>'
     def get_refs(self):
@@ -91,28 +85,29 @@ class Block:
         return base
 
     def make_ref(self, level, new=True, saved=False):
-        options = {"usefulTags":[]}
-        for tag in self.usefulTags:
-            if tag in ["?AIE","?WEI","?ANT","?PIN"]:
-                options["usefulTags"].append(tag)
+        options = {}
         if saved:
             options["decoy"] = True
+        # A decoy is a version of the block that is gaurenteed not to be a clone as it is a ref only made
+        # For saving
         return Ref(level, 0 if new else self.x, 0 if new else self.y, self.id, 0 if new else 1, 0, 0, 0, 0, -1, self.player, self.possessable, self.playerorder, self.fliph, self.floatinspace, self.specialeffect, **options)
     
     def save(self, level, indent, saved_blocks):
         if self in saved_blocks and not self.fillwithwalls:
+            # Rely on decoy to add useful to self
             ref = self.make_ref(level, False, True).save(level, indent, saved_blocks)
             self.exitref = None
             return ref
         else:
             saved_blocks.append(self)
+
+        # No longer adding ref
         line = ["Block", int(self.x), int(self.y), int(self.id), int(self.width), int(self.height), f"{self.hue:1.3g}", f"{self.sat:1.3g}", f"{self.val:1.3g}", f"{self.zoomfactor:1.3g}", int(self.fillwithwalls), int(self.player), int(self.possessable), int(self.playerorder), int(self.fliph), int(self.floatinspace), int(self.specialeffect)]
         block = "\n" + "\t"*indent + " ".join(str(i) for i in line)
+
         # UsefulMod (Always Enabled Internal)
-        for useTag in self.usefulTags:
-            block = "\n" + "\t"*indent + str(useTag) + block
-        if self.usefulWrap > 0:
-            block = "\n" + "\t"*indent + "?WRP "+ str(self.usefulWrap) + block
+        block = savekeys(self, indent) + block
+
         for child in self.children:
             if 0 <= child.x < self.width and 0 <= child.y < self.height:
                 block += child.save(level, indent + 1, saved_blocks)
@@ -333,26 +328,8 @@ class Block:
         if changed:
             self.specialeffect = list(special_effects.keys())[value]
         # UsefulMod (Conditional UI)
-        if usefulmod.enabled and imgui.begin_menu("UsefulMod"):
-            changed, value = imgui.input_int("Wrap", int(self.usefulWrap))
-            if changed: 
-                self.usefulWrap = value
-            changed, value = imgui.checkbox("Camera Follow", "?PCF" in self.usefulTags)
-            if changed:
-                useful_change(self, "?PCF", bool(value))
-            changed, value = imgui.checkbox("Inf Zone", "?IFZ" in self.usefulTags)
-            if changed:
-                useful_change(self, "?IFZ", bool(value))
-            changed, value = imgui.checkbox("Weighted", "?WEI" in self.usefulTags)
-            if changed:
-                useful_change(self, "?WEI", bool(value))
-            changed, value = imgui.checkbox("Anti", "?ANT" in self.usefulTags)
-            if changed:
-                useful_change(self, "?ANT", bool(value))
-            changed, value = imgui.checkbox("Pinned", "?PIN" in self.usefulTags)
-            if changed:
-                useful_change(self, "?PIN", bool(value))
-            imgui.end_menu()
+        if usefulmod.enabled:
+            umenu(self,imgui)
 
     
     def palette_menu(self, level):

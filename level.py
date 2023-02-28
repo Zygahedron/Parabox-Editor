@@ -10,6 +10,7 @@ from place.floor import Floor
 from place.block import Block
 from place.ref import Ref
 from state import Design
+from usefull.keywords import headers, tags
 class Level:
     def __init__(self, name, data, level_number = -1, hub_parent = False, difficulty: int = 0, possess_fx = False, credits = '', **level_args):
         self.name = name
@@ -50,18 +51,21 @@ class Level:
         self.metadata["custom_level_palette"] = -1 if "custom_level_palette" not in self.metadata else int(self.metadata["custom_level_palette"])
         
         # UsefulMod (Internal)
-        for usefulmetadata in ["winfz_sensitivity", "white_eyes", "banish_fix", "ifzeat_fix", "epsi_fix"]:
-            self.metadata[usefulmetadata] = usefulmetadata in self.metadata and self.metadata[usefulmetadata] == "1" and not usefulmod.purge
-            if self.metadata[usefulmetadata] and not usefulmod.purge:
-                useful_warn = True
+        for use_meta in headers:
+            if not usefulmod.purge:
+                if use_meta in self.metadata:
+                    self.metadata[use_meta] = int(self.metadata[use_meta])
+                    useful_warn = True
+                else:
+                    self.metadata[use_meta] = headers[use_meta]["default"]
+                    
         
         data = data.split("\n")
         indent = 0
         last_block = None
         parent = None
         refs = []
-        kwargs = {}
-        kwargs["usefulTags"]=[]
+        kwargs = {"usefulTags":[],"usefulVal":{}}
         stack = []
         if "area_data" in level_args:
             raw_area_data = level_args["area_data"]
@@ -98,56 +102,61 @@ class Level:
                 parent = stack[-1]
             args = trimmed.split(" ")
             block_type = args.pop(0)
-            if block_type == "Block":
-                block = Block(self, *args, **kwargs)
-                # For UsefulMod
-                kwargs["usefulTags"]=[]
-                block.parent = parent
-                if parent:
-                    parent.place_child(int(block.x), int(block.y), block)
-                last_block = block
-                if block.fillwithwalls != 1:
-                    if not int(block.id) in self.blocks:
-                        self.blocks[int(block.id)] = block
-                    else:
-                        print("duplicate block with id " + str(block.id))
-            elif block_type == "Ref":
-                ref = Ref(self, *args, **kwargs)
-                kwargs["usefulTags"]=[]
-                if not int(ref.infenter):
-                    refs.append(ref)
-                if parent:
-                    parent.place_child(int(ref.x), int(ref.y), ref)
-                else: 
-                    # TODO this is a fatal loading error. Add debug message
-                    pass
-                last_block = ref
-            elif block_type == "Wall":
-                if len(args) > 6:
-                    wall = Wall(*args[:5],"_".join(args[5:]))
-                else:
-                    wall = Wall(*args)
-                if parent:
-                    parent.place_child(int(wall.x), int(wall.y), wall)
-                else:
-                    print("Discarding wall at root level")
-                last_block = wall
-            elif block_type == "Floor":
-                floor = Floor(*args[:3], " ".join(args[3:]).replace("_"," ").replace('\\n','\n'))
-                if parent:
-                    parent.place_child(int(floor.x), int(floor.y), floor)
-                else:
-                    print("Discarding floor at root level")
-                last_block = floor
-            # UsefulMod (Always Enabled Internal)
-            elif len(block_type) > 0 and block_type[0]=="?":
+
+            # START LINE TEXT PARSING
+            if not usefulmod.purge and len(block_type) > 0 and block_type[0]=="?":
                 useful_warn = True
-                if block_type == "?WRP":
-                    kwargs["usefulWrap"]=int(args[0].strip)
-                else:
-                    kwargs["usefulTags"].append(block_type)
+                if block_type[1:] in tags["base"]:
+                    kwargs["usefulTags"].append(block_type[1:])
+                elif block_type[1:] in tags["short"]:
+                    kwargs["usefulVal"][block_type[1:]] = int(args[0])
+                elif block_type[1:] in tags["long"]:
+                    kwargs["usefulVal"][block_type[1:]] = args
+            # Start Normal Block Parsing
             else:
-                pass
+                if block_type == "Block":
+                    block = Block(self, *args, **kwargs)
+                    # For UsefulMod
+                    block.parent = parent
+                    if parent:
+                        parent.place_child(int(block.x), int(block.y), block)
+                    last_block = block
+                    if block.fillwithwalls != 1:
+                        if not int(block.id) in self.blocks:
+                            self.blocks[int(block.id)] = block
+                        else:
+                            print("duplicate block with id " + str(block.id))
+                elif block_type == "Ref":
+                    ref = Ref(self, *args, **kwargs)
+                    if not int(ref.infenter):
+                        refs.append(ref)
+                    if parent:
+                        parent.place_child(int(ref.x), int(ref.y), ref)
+                    else: 
+                        # TODO this is a fatal loading error. Add debug message
+                        pass
+                    last_block = ref
+                elif block_type == "Wall":
+                    if len(args) > 6:
+                        wall = Wall(*args[:5],"_".join(args[5:]))
+                    else:
+                        wall = Wall(*args)
+                    if parent:
+                        parent.place_child(int(wall.x), int(wall.y), wall)
+                    else:
+                        print("Discarding wall at root level")
+                    last_block = wall
+                elif block_type == "Floor":
+                    floor = Floor(*args[:3], " ".join(args[3:]).replace("_"," ").replace('\\n','\n'))
+                    if parent:
+                        parent.place_child(int(floor.x), int(floor.y), floor)
+                    else:
+                        print("Discarding floor at root level")
+                    last_block = floor
+                else:
+                    pass
+                # Usefulmod reset kwargs
+                kwargs = {"usefulTags":[],"usefulVal":{}}
         for idx, val in self.music.items():
             if idx in self.blocks:
                 self.blocks[idx].music = val
@@ -156,6 +165,7 @@ class Level:
             # Add them again manually (set so no duplicates)
             if ref.id in self.blocks:
                 self.blocks[ref.id].refs.add(ref)
+
         if useful_warn and not usefulmod.enabled and not usefulmod.purge:
             usefulmod.warn = True
         usefulmod.purge = False
@@ -176,6 +186,8 @@ class Level:
         if self.metadata["custom_level_palette"] != -1:
             data += "custom_level_palette " + str(self.metadata["custom_level_palette"]) + "\n"
         # UsefulMod
+        # TODO
+        """
         if self.metadata["winfz_sensitivity"]:
             data += "winfz_sensitivity 1\n"
         if self.metadata["white_eyes"]:
@@ -186,6 +198,7 @@ class Level:
             data += "ifzeat_fix 1\n"
         if self.metadata["epsi_fix"]:
             data += "epsi_fix 1\n"
+        """
         data += "#\n"
         
         to_save = list(self.blocks.values())
@@ -266,6 +279,7 @@ class Level:
             imgui.end_menu()
         
         # UsefulMod (Conditional UI)
+        """
         if usefulmod.enabled:
             imgui.separator() 
         if usefulmod.enabled and imgui.begin_menu("UsefulMod"):
@@ -285,6 +299,7 @@ class Level:
             if changed:
                 self.metadata["epsi_fix"] = value
             imgui.end_menu()
+        """
         imgui.separator()
         if not self.hub_parent:
             changed, value = imgui.checkbox("Hub Level", self.is_hub)

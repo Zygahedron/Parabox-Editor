@@ -2,6 +2,7 @@ import imgui
 import math
 from random import random
 from state import Design, usefulmod
+from usefull.keywords import savekeys, umenu
 from .utils import to_bool, draw_infinity, draw_epsilon, draw_shine, draw_eyes, draw_weight, draw_pin, useful_change, special_effects
 
 class Ref:
@@ -37,15 +38,12 @@ class Ref:
         if "music" in kwargs and area_name in kwargs["music"]:
             self.level.music[self.id] = kwargs["music"][area_name]
         else: self.area_music = 0
-        # UsefulMod (Always Enabled Internal)
-        if not "purge" in kwargs:
-            if "usefulTags" in kwargs:
-                self.usefulTags = kwargs["usefulTags"]
-            else:
-                self.usefulTags = []
-        else:
-                self.usefulTags = []
-        # Tell the world you (the block you reference) that you exist
+        # Usefulmod load internal
+        if "usefulTags" in kwargs: self.usefulTags = kwargs["usefulTags"]
+        else: self.usefulTags = []
+        if "usefulVal" in kwargs: self.usefulVal = kwargs["usefulVal"]
+        else: self.usefulVal = {}
+        # Tell the world (the block you reference) that you exist
         if self.id in level.blocks:
             orig = level.blocks[self.id]
             orig.refs.add(self)
@@ -103,8 +101,11 @@ class Ref:
         ]
         refText = "\n" + "\t"*indent + " ".join(str(i) for i in line)
         # UsefulMod (Always Enabled Internal)
-        for useTag in self.usefulTags:
-            refText = "\n" + "\t"*indent + str(useTag) + refText
+
+        if self.exitblock:
+            refText = savekeys(self.get_orig(),indent) + refText
+        else:
+            refText = savekeys(self,indent) + refText
         return refText
 
     def draw(self, draw_list, x, y, width, height, level, depth, fliph):
@@ -225,20 +226,9 @@ class Ref:
             self.specialeffect = list(special_effects.keys())[value]
 
         # UsefulMod (Conditional UI)
-        if usefulmod.enabled and imgui.begin_menu("UsefulMod"):
-            changed, value = imgui.checkbox("Inf Enter Allowed", "?AIE" in self.usefulTags)
-            if changed:
-                useful_change(self, "?AIE", bool(value))
-            changed, value = imgui.checkbox("Weighted", "?WEI" in self.usefulTags)
-            if changed:
-                useful_change(self, "?WEI", bool(value))
-            changed, value = imgui.checkbox("Anti", "?ANT" in self.usefulTags)
-            if changed:
-                useful_change(self, "?ANT", bool(value))
-            changed, value = imgui.checkbox("Pinned", "?PIN" in self.usefulTags)
-            if changed:
-                useful_change(self, "?PIN", bool(value))
-            imgui.end_menu()
+        if usefulmod.enabled:
+            umenu(self,imgui)
+            
         if level.is_hub:
             imgui.separator()
             changed, value = imgui.input_text("Area Name", self.area_name if self.area_name is not None else '', 256)
